@@ -123,11 +123,11 @@ def span_names(telemetry) -> set:
 
 def stack_leaves(telemetry, k1, k2, k3, k4):
     out = []
-    for req in getattr(telemetry, k1):
-        for rm in getattr(req.pbreq, k2):
-            for sm in getattr(rm, k3):
-                for item in getattr(sm, k4):
-                    out.append(item)
+    for a1 in getattr(telemetry, k1):
+        for a2 in getattr(a1.pbreq, k2):
+            for a3 in getattr(a2, k3):
+                for a4 in getattr(a3, k4):
+                    out.append(a4)
     return out
 
 
