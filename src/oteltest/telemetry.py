@@ -48,27 +48,27 @@ class Telemetry:
     """
 
     def __init__(
-        self,
-        metric_requests: Optional[List[Request]] = None,
-        trace_requests: Optional[List[Request]] = None,
-        log_requests: Optional[List[Request]] = None,
+      self,
+      metric_requests: Optional[List[Request]] = None,
+      trace_requests: Optional[List[Request]] = None,
+      log_requests: Optional[List[Request]] = None,
     ):
         self.metric_requests: List[Request] = metric_requests or []
         self.trace_requests: List[Request] = trace_requests or []
         self.log_requests: List[Request] = log_requests or []
 
     def add_metric(
-        self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
+      self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
     ):
         self.metric_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
     def add_trace(
-        self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int
+      self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int
     ):
         self.trace_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
     def add_log(
-        self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int
+      self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int
     ):
         self.log_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
@@ -95,41 +95,39 @@ class Telemetry:
         }
 
 
+_metrics_path = ["metric_requests", "resource_metrics", "scope_metrics", "metrics"]
+_trace_path = ["trace_requests", "resource_spans", "scope_spans", "spans"]
+
+
 def num_metrics(telemetry) -> int:
-    out = 0
-    for req in telemetry.metric_requests:
-        for rm in req.pbreq.resource_metrics:
-            for sm in rm.scope_metrics:
-                out += len(sm.metrics)
-    return out
+    return len(stack_leaves(telemetry, *_metrics_path))
 
 
 def metric_names(telemetry) -> set:
-    out = set()
-    for req in telemetry.metric_requests:
-        for rm in req.pbreq.resource_metrics:
-            for sm in rm.scope_metrics:
-                for metric in sm.metrics:
-                    out.add(metric.name)
-    return out
+    return {
+        leaf.name for leaf in
+        stack_leaves(telemetry, *_metrics_path)
+    }
 
 
 def num_spans(telemetry) -> int:
-    out = 0
-    for req in telemetry.trace_requests:
-        for rs in req.pbreq.resource_spans:
-            for ss in rs.scope_spans:
-                out += len(ss.spans)
-    return out
+    return len(stack_leaves(telemetry, *_trace_path))
 
 
 def span_names(telemetry) -> set:
-    out = set()
-    for req in telemetry.trace_requests:
-        for rs in req.pbreq.resource_spans:
-            for ss in rs.scope_spans:
-                for span in ss.spans:
-                    out.add(span.name)
+    return {
+        leaf.name for leaf in
+        stack_leaves(telemetry, *_trace_path)
+    }
+
+
+def stack_leaves(telemetry, k1, k2, k3, k4):
+    out = []
+    for req in getattr(telemetry, k1):
+        for rm in getattr(req.pbreq, k2):
+            for sm in getattr(rm, k3):
+                for item in getattr(sm, k4):
+                    out.append(item)
     return out
 
 
@@ -145,15 +143,15 @@ def first_span(tel: Telemetry):
     return span_at_index(tel, 0, 0, 0, 0)
 
 
-def span_at_index(tel: Telemetry, a: int, b: int, c: int, d: int):
+def span_at_index(tel: Telemetry, i: int, j: int, k: int, l: int):
     if len(tel.trace_requests):
-        req = tel.trace_requests[a]
+        req = tel.trace_requests[i]
         if len(req.pbreq.resource_spans):
-            rs = req.pbreq.resource_spans[b]
+            rs = req.pbreq.resource_spans[j]
             if len(rs.scope_spans):
-                ss = rs.scope_spans[c]
+                ss = rs.scope_spans[k]
                 if len(ss.spans):
-                    return ss.spans[d]
+                    return ss.spans[l]
     return None
 
 
