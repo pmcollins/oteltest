@@ -50,9 +50,9 @@ Running `oteltest` against a directory containing only `my_script.py`
 
 #### Script Eligibility
 
-For a Python script to be runnable by `oteltest`, it must both be executable and implement the [OtelTest](src/oteltest/__init__.py)
-abstract base class. The implementation should either inherit from `OtelTest` or contain the name "OtelTest". The script
-below has an implementation called `MyOtelTest`:
+For a Python script to be runnable by `oteltest`, it must implement the [OtelTest](src/oteltest/__init__.py)
+abstract base class, either formally by inheriting from `OtelTest`, or informally by merely containing the name
+"OtelTest" and implementing the methods. The script below has an implementation called `MyOtelTest`:
 
 ```python
 import time
@@ -70,6 +70,8 @@ if __name__ == "__main__":
             time.sleep(0.5)
 
 
+# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
+# contains "OtelTest".
 class MyOtelTest:
     def requirements(self):
         return "opentelemetry-distro", "opentelemetry-exporter-otlp-proto-grpc"
@@ -93,35 +95,35 @@ Here's a client-server example:
 import time
 from typing import Mapping, Optional, Sequence
 
-from flask import Flask, jsonify
 
 PORT = 8002
 HOST = "127.0.0.1"
 
 
-app = Flask(__name__)
-
-
-@app.route("/")
-def home():
-    return jsonify({"library": "flask"})
-
-
 if __name__ == "__main__":
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route("/")
+    def home():
+        return "hello"
+
     app.run(port=PORT, host=HOST)
 
 
-class FlaskTest:
+# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
+# contains "OtelTest".
+class FlaskOtelTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {}
 
     def requirements(self) -> Sequence[str]:
         return (
+            "flask",
             "opentelemetry-distro",
             "opentelemetry-exporter-otlp-proto-grpc",
             "opentelemetry-instrumentation-flask",
-            "flask==2.3.3",
-            "jsonify",
         )
 
     def wrapper_command(self) -> str:
@@ -144,8 +146,8 @@ class FlaskTest:
         return 30
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+        # you can do something with the telemetry here, e.g. make assertions etc.
         print("done")
-
 ```
 
 ### otelsink

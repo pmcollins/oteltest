@@ -1,34 +1,35 @@
 import time
 from typing import Mapping, Optional, Sequence
 
-PORT = 8909
+
+PORT = 8002
 HOST = "127.0.0.1"
 
+
 if __name__ == "__main__":
-    from flask import Flask, jsonify
+    from flask import Flask
 
     app = Flask(__name__)
 
     @app.route("/")
     def home():
-        return jsonify({"library": "flask"})
+        return "hello"
 
     app.run(port=PORT, host=HOST)
 
 
-# We have the option to not inherit from the OtelTest base class, in which case we name our class so it contains
-# "OtelTest". This has the benefit of not requiring a dependency on oteltest in the script's environment.
+# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
+# contains "OtelTest".
 class FlaskOtelTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {}
 
     def requirements(self) -> Sequence[str]:
         return (
+            "flask",
             "opentelemetry-distro",
             "opentelemetry-exporter-otlp-proto-grpc",
             "opentelemetry-instrumentation-flask",
-            "flask==2.3.3",
-            "jsonify",
         )
 
     def wrapper_command(self) -> str:
@@ -45,14 +46,11 @@ class FlaskOtelTest:
         print("response:", conn.getresponse().read().decode())
         conn.close()
 
-        # The return value of on_script_start() tells oteltest the number of seconds to wait for the script to
-        # finish. In this case, we indicate 30 (seconds), which, once elapsed, will cause the script to be terminated,
-        # if it's still running. If we return `None` then the script will run indefinitely.
+        # The return value of on_script_start() tells oteltest the number of seconds to wait for the script to complete.
+        # In this case, we indicate 30 (seconds), which, once elapsed, will cause the script to be terminated, if it's
+        # still running. If we return `None` then the script will run indefinitely.
         return 30
 
-    def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
-        # local import so oteltest is not needed for parsing this script
-        from oteltest import telemetry
-
-        span = telemetry.first_span(tel)
-        assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
+    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+        # you can do something with the telemetry here, e.g. make assertions etc.
+        print("done")
