@@ -130,7 +130,6 @@ def test_run_python_script():
         Venv("venv_dir"),
     )
     assert t.python_script_cmd == [
-        "venv_dir/bin/",
         "venv_dir/bin/python",
         "script_dir/script",
     ]

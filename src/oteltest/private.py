@@ -127,7 +127,7 @@ def run_python_script(
     ]
 
     wrapper_script = oteltest_instance.wrapper_command()
-    if wrapper_script is not None:
+    if wrapper_script:
         python_script_cmd.insert(0, script_venv.path_to_executable(wrapper_script))
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
