@@ -10,7 +10,9 @@ from oteltest.private import (
     get_next_json_file,
     is_test_class,
     load_test_class_for_script,
+    run_python_script,
     save_telemetry_json,
+    Venv,
 )
 
 
@@ -105,6 +107,48 @@ def test_span_attribute_by_name(client_server_fixture: Telemetry):
     assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
 
 
+def test_run_python_script():
+    env = {"aaa": "bbb"}
+
+    class Tester:
+
+        def __init__(self):
+            self.python_script_cmd = None
+            self.env = None
+
+        def start_subprocess(self, python_script_cmd, env):
+            self.python_script_cmd = python_script_cmd
+            self.env = env
+            return FakeSubProcess()
+
+    t = Tester()
+    run_python_script(
+        t.start_subprocess,
+        "script_dir",
+        "script",
+        FakeOtelTest(env=env),
+        Venv("venv_dir"),
+    )
+    assert t.python_script_cmd == [
+        "venv_dir/bin/python",
+        "script_dir/script",
+    ]
+    assert t.env == env
+
+
+class FakeSubProcess:
+
+    returncode = 0
+
+    def communicate(self, timeout):
+        stdout = ""
+        stderr = ""
+        return stdout, stderr
+
+    def kill(self):
+        pass
+
+
 # fixtures
 
 
@@ -143,3 +187,28 @@ def load_fixture(fname):
 
 def get_path_to_fixture(fname):
     return os.path.join(fixtures_dir, fname)
+
+
+class FakeOtelTest:
+
+    def __init__(self, env=None, reqs=None, wrapper=None):
+        self.env = env or {}
+        self.reqs = reqs or []
+        self.wrapper = wrapper or ""
+
+    def environment_variables(self) -> Mapping[str, str]:
+        return self.env
+
+    def requirements(self) -> Sequence[str]:
+        return self.reqs
+
+    def wrapper_command(self) -> str:
+        return self.wrapper
+
+    def on_start(self) -> Optional[float]:
+        pass
+
+    def on_stop(
+        self, tel: Telemetry, stdout: str, stderr: str, returncode: int
+    ) -> None:
+        pass
