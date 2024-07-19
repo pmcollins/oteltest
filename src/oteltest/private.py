@@ -1,3 +1,4 @@
+import abc
 import glob
 import importlib
 import importlib.util
@@ -10,6 +11,7 @@ import tempfile
 import time
 import typing
 import venv
+from abc import ABC
 from pathlib import Path
 
 from google.protobuf.json_format import MessageToDict
@@ -85,7 +87,7 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str):
         run_subprocess([pip_path, "install", req])
 
     stdout, stderr, returncode = run_python_script(
-        script_dir, script, oteltest_instance, script_venv
+        start_subprocess, script_dir, script, oteltest_instance, script_venv
     )
     print_subprocess_result(stdout, stderr, returncode)
 
@@ -116,26 +118,22 @@ def save_telemetry_json(script_dir: str, file_name: str, json_str: str):
 
 
 def run_python_script(
-    script_dir: str, script: str, oteltest_instance: OtelTest, v
+    start_subprocess_func, script_dir: str, script: str, oteltest_instance, script_venv
 ) -> typing.Tuple[str, str, int]:
     print(f"- Running python script: {script}")
     python_script_cmd = [
-        v.path_to_executable("python"),
+        script_venv.path_to_executable("python"),
         str(Path(script_dir) / script),
     ]
 
     wrapper_script = oteltest_instance.wrapper_command()
     if wrapper_script is not None:
-        python_script_cmd.insert(0, v.path_to_executable(wrapper_script))
+        python_script_cmd.insert(0, script_venv.path_to_executable(wrapper_script))
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
     print(f"- Popen subprocess: {python_script_cmd}")
-    proc = subprocess.Popen(
-        python_script_cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        env=oteltest_instance.environment_variables(),
+    proc = start_subprocess_func(
+        python_script_cmd, oteltest_instance.environment_variables()
     )
     timeout = exec_onstart_callback(oteltest_instance, script)
     try:
@@ -145,6 +143,16 @@ def run_python_script(
         proc.kill()
         print(f"- Script {script} terminated")
         return decode(ex.stdout), decode(ex.stderr), proc.returncode
+
+
+def start_subprocess(python_script_cmd, env):
+    return subprocess.Popen(
+        python_script_cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
+    )
 
 
 def exec_onstart_callback(oteltest_instance, script):
