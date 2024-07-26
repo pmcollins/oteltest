@@ -48,27 +48,27 @@ class Telemetry:
     """
 
     def __init__(
-      self,
-      metric_requests: Optional[List[Request]] = None,
-      trace_requests: Optional[List[Request]] = None,
-      log_requests: Optional[List[Request]] = None,
+        self,
+        metric_requests: Optional[List[Request]] = None,
+        trace_requests: Optional[List[Request]] = None,
+        log_requests: Optional[List[Request]] = None,
     ):
         self.metric_requests: List[Request] = metric_requests or []
         self.trace_requests: List[Request] = trace_requests or []
         self.log_requests: List[Request] = log_requests or []
 
     def add_metric(
-      self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
+        self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
     ):
         self.metric_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
     def add_trace(
-      self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int
+        self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int
     ):
         self.trace_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
     def add_log(
-      self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int
+        self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int
     ):
         self.log_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
@@ -104,10 +104,7 @@ def num_metrics(telemetry) -> int:
 
 
 def metric_names(telemetry) -> set:
-    return {
-        leaf.name for leaf in
-        stack_leaves(telemetry, *_metrics_path)
-    }
+    return {leaf.name for leaf in stack_leaves(telemetry, *_metrics_path)}
 
 
 def num_spans(telemetry) -> int:
@@ -115,10 +112,7 @@ def num_spans(telemetry) -> int:
 
 
 def span_names(telemetry) -> set:
-    return {
-        leaf.name for leaf in
-        stack_leaves(telemetry, *_trace_path)
-    }
+    return {leaf.name for leaf in stack_leaves(telemetry, *_trace_path)}
 
 
 def stack_leaves(telemetry, k1, k2, k3, k4):

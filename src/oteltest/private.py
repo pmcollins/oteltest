@@ -1,9 +1,9 @@
-import abc
 import glob
 import importlib
 import importlib.util
 import inspect
 import os
+import pickle
 import shutil
 import subprocess
 import sys
@@ -11,10 +11,8 @@ import tempfile
 import time
 import typing
 import venv
-from abc import ABC
 from pathlib import Path
 
-from google.protobuf.json_format import MessageToDict
 from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
     ExportLogsServiceRequest,
 )
@@ -26,7 +24,7 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
 )
 
 from oteltest import OtelTest, Telemetry
-from oteltest.sink import GrpcSink, RequestHandler
+from oteltest.sink import GrpcSink, HttpSink, RequestHandler
 
 
 def run(script_path: str, venv_parent_dir: str):
@@ -65,17 +63,20 @@ def ls_scripts(script_dir):
 
 
 def setup_script_environment(venv_parent: str, script_dir: str, script: str):
-    handler = AccumulatingHandler()
-    sink = GrpcSink(handler)
-    sink.start()
-
     module_name = script[:-3]
     module_path = os.path.join(script_dir, script)
-    oteltest_class = load_test_class_for_script(module_name, module_path)
+    oteltest_class = load_oteltest_class_for_script(module_name, module_path)
     if oteltest_class is None:
         print(f"Could not find oteltest class for module_name '{module_name}'")
         return
     oteltest_instance = oteltest_class()
+
+    handler = AccumulatingHandler()
+    if hasattr(oteltest_instance, "is_http") and oteltest_instance.is_http():
+        sink = HttpSink(handler)
+    else:
+        sink = GrpcSink(handler)
+    sink.start()
 
     script_venv = Venv(str(Path(venv_parent) / module_name))
     script_venv.create()
@@ -196,7 +197,7 @@ def print_subprocess_result(stdout: str, stderr: str, returncode: int):
     print("- End Subprocess -\n")
 
 
-def load_test_class_for_script(module_name, module_path):
+def load_oteltest_class_for_script(module_name, module_path):
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -240,26 +241,26 @@ class AccumulatingHandler(RequestHandler):
         self.start_time = time.time_ns()
         self.telemetry = Telemetry()
 
-    def handle_logs(self, request: ExportLogsServiceRequest, context):  # noqa: ARG002
+    def handle_logs(self, request: ExportLogsServiceRequest, headers):  # noqa: ARG002
         self.telemetry.add_log(
             request,
-            get_context_headers(context),
+            headers,
             self.get_test_elapsed_ms(),
         )
 
     def handle_metrics(
-        self, request: ExportMetricsServiceRequest, context
+        self, request: ExportMetricsServiceRequest, headers
     ):  # noqa: ARG002
         self.telemetry.add_metric(
             request,
-            get_context_headers(context),
+            headers,
             self.get_test_elapsed_ms(),
         )
 
-    def handle_trace(self, request: ExportTraceServiceRequest, context):  # noqa: ARG002
+    def handle_trace(self, request: ExportTraceServiceRequest, headers):  # noqa: ARG002
         self.telemetry.add_trace(
             request,
-            get_context_headers(context),
+            headers,
             self.get_test_elapsed_ms(),
         )
 
@@ -268,14 +269,3 @@ class AccumulatingHandler(RequestHandler):
 
     def telemetry_to_json(self):
         return self.telemetry.to_json()
-
-
-def get_context_headers(context):
-    return pbmetadata_to_dict(context.invocation_metadata())
-
-
-def pbmetadata_to_dict(pbmetadata):
-    out = {}
-    for key, val in pbmetadata:
-        out[key] = val
-    return out

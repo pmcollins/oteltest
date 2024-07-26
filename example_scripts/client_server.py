@@ -1,6 +1,7 @@
 import time
 from typing import Mapping, Optional, Sequence
 
+from oteltest import OtelTest
 
 PORT = 8002
 HOST = "127.0.0.1"
@@ -20,7 +21,7 @@ if __name__ == "__main__":
 
 # Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
 # contains "OtelTest".
-class FlaskOtelTest:
+class FlaskOtelTest(OtelTest):
     def environment_variables(self) -> Mapping[str, str]:
         return {}
 
@@ -54,3 +55,6 @@ class FlaskOtelTest:
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
         # you can do something with the telemetry here, e.g. make assertions etc.
         print("done")
+
+    def is_http(self) -> bool:
+        return False

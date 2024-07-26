@@ -1,13 +1,9 @@
 import abc
+import threading
 from concurrent import futures
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import grpc  # type: ignore
-from oteltest.sink.private import (
-    _LogsServiceServicer,
-    _MetricsServiceServicer,
-    _TraceServiceServicer,
-)
-
 from opentelemetry.proto.collector.logs.v1 import (  # type: ignore
     logs_service_pb2_grpc,
 )
@@ -27,6 +23,12 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
     ExportTraceServiceRequest,  # type: ignore
 )
 
+from oteltest.sink.private import (
+    _LogsServiceServicer,
+    _MetricsServiceServicer,
+    _TraceServiceServicer,
+)
+
 
 class RequestHandler(abc.ABC):
     """
@@ -38,15 +40,15 @@ class RequestHandler(abc.ABC):
     """
 
     @abc.abstractmethod
-    def handle_logs(self, request: ExportLogsServiceRequest, context):
+    def handle_logs(self, request: ExportLogsServiceRequest, headers):
         pass
 
     @abc.abstractmethod
-    def handle_metrics(self, request: ExportMetricsServiceRequest, context):
+    def handle_metrics(self, request: ExportMetricsServiceRequest, headers):
         pass
 
     @abc.abstractmethod
-    def handle_trace(self, request: ExportTraceServiceRequest, context):
+    def handle_trace(self, request: ExportTraceServiceRequest, headers):
         pass
 
 
@@ -73,6 +75,7 @@ class GrpcSink:
             _LogsServiceServicer(request_handler.handle_logs), self.svr
         )
         self.svr.add_insecure_port(address)
+        print(f"- Set up grpc sink at address {address}")
 
     def start(self):
         """Starts the server. Does not block."""
@@ -90,12 +93,74 @@ class GrpcSink:
         self.svr.stop(grace=None)
 
 
+class HttpSink:
+
+    def __init__(self, listener, port=4318, daemon=True):
+        self.listener = listener
+        self.port = port
+        self.handlers = {
+            "/v1/traces": self.handle_trace,
+            "/v1/metrics": self.handle_metrics,
+            "/v1/logs": self.handle_logs,
+        }
+        self.svr_thread = threading.Thread(target=self.run_server)
+        self.svr_thread.daemon = daemon
+        print(f"- Set up http sink on port {port}")
+
+    def start(self):
+        self.svr_thread.start()
+
+    def run_server(self):
+        class Handler(BaseHTTPRequestHandler):
+
+            # noinspection PyPep8Naming
+            def do_POST(this):
+                # /v1/traces
+                content_length = int(this.headers["Content-Length"])
+                post_data = this.rfile.read(content_length)
+
+                otlp_handler_func = self.handlers.get(this.path)
+                if otlp_handler_func:
+                    # noinspection PyArgumentList
+                    otlp_handler_func(
+                        post_data, {k: v for k, v in this.headers.items()}
+                    )
+
+                this.send_response(200)
+                this.send_header("Content-type", "text/html")
+                this.end_headers()
+
+                this.wfile.write("OK".encode("utf-8"))
+
+        # noinspection PyTypeChecker
+        httpd = HTTPServer(("", self.port), Handler)
+        httpd.serve_forever()
+
+    def handle_trace(self, post_data, headers):
+        req = ExportTraceServiceRequest()
+        req.ParseFromString(post_data)
+        self.listener.handle_trace(req, headers)
+
+    def handle_metrics(self, post_data, headers):
+        req = ExportMetricsServiceRequest()
+        req.ParseFromString(post_data)
+        self.listener.handle_metrics(req, headers)
+
+    def handle_logs(self, post_data, headers):
+        req = ExportLogsServiceRequest()
+        req.ParseFromString(post_data)
+        self.listener.handle_logs(req, headers)
+
+    def stop(self):
+        self.svr_thread.join()
+
+
 class PrintHandler(RequestHandler):
     """
     A RequestHandler implementation that prints the received messages.
     """
 
-    def handle_logs(self, request, context):  # noqa: ARG002
+    def handle_logs(self, request, headers):  # noqa: ARG002
         print(f"log request: {request}", flush=True)  # noqa: T201
 
     def handle_metrics(self, request, context):  # noqa: ARG002
@@ -105,11 +170,12 @@ class PrintHandler(RequestHandler):
         print(f"trace request: {request}", flush=True)  # noqa: T201
 
 
-def run_with_print_handler():
-    """
-    Runs otelsink with a PrintHandler.
-    """
-    print("starting otelsink with a print handler", flush=True)
+def run_grpc():
     sink = GrpcSink(PrintHandler())
     sink.start()
     sink.wait_for_termination()
+
+
+def run_http():
+    sink = HttpSink(PrintHandler(), daemon=False)
+    sink.start()
