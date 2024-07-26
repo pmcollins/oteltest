@@ -4,12 +4,8 @@ import pickle
 from typing import Mapping, Optional, Sequence
 
 import pytest
-from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
-    ExportMetricsServiceRequest,
-)
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
-    ExportTraceServiceRequest,
-)
+from opentelemetry.proto.metrics.v1.metrics_pb2 import Metric
+from opentelemetry.proto.trace.v1.trace_pb2 import Span
 
 from oteltest import OtelTest, telemetry, Telemetry
 from oteltest.private import (
@@ -20,6 +16,28 @@ from oteltest.private import (
     save_telemetry_json,
     Venv,
 )
+from oteltest.telemetry import stack_metrics, stack_traces
+
+
+# fixtures
+
+
+@pytest.fixture
+def telemetry_fixture() -> Telemetry:
+    return load_fixture("metrics_and_traces.pkl")
+
+
+@pytest.fixture
+def client_server_fixture() -> Telemetry:
+    return load_fixture("client_server.pkl")
+
+
+@pytest.fixture
+def post_data_fixture():
+    return load_fixture("post_data.pkl")
+
+
+# tests
 
 
 def test_get_next_json_file(tmp_path):
@@ -79,12 +97,12 @@ def test_load_test_class_for_script():
     assert klass is not None
 
 
-def test_telemetry_functions(metrics_trace_fixture: Telemetry):
-    assert len(metrics_trace_fixture.trace_requests)
-    assert len(metrics_trace_fixture.trace_requests)
-    assert telemetry.num_spans(metrics_trace_fixture) == 10
-    assert telemetry.num_metrics(metrics_trace_fixture) == 21
-    assert telemetry.metric_names(metrics_trace_fixture) == {
+def test_telemetry_functions(telemetry_fixture: Telemetry):
+    assert len(telemetry_fixture.trace_requests)
+    assert len(telemetry_fixture.trace_requests)
+    assert telemetry.num_spans(telemetry_fixture) == 10
+    assert telemetry.num_metrics(telemetry_fixture) == 21
+    assert telemetry.metric_names(telemetry_fixture) == {
         "loop-counter",
         "process.runtime.cpython.context_switches",
         "process.runtime.cpython.cpu.utilization",
@@ -107,7 +125,7 @@ def test_telemetry_functions(metrics_trace_fixture: Telemetry):
         "system.swap.utilization",
         "system.thread_count",
     }
-    span = telemetry.first_span(metrics_trace_fixture)
+    span = telemetry.first_span(telemetry_fixture)
     assert span.trace_id.hex() == "0adffbc2cb9f3cdb09f6801a788da973"
 
 
@@ -145,55 +163,21 @@ def test_run_python_script():
     assert t.env == env
 
 
-class FakeSubProcess:
-
-    returncode = 0
-
-    def communicate(self, timeout):
-        stdout = ""
-        stderr = ""
-        return stdout, stderr
-
-    def kill(self):
-        pass
+def test_stack_traces(telemetry_fixture):
+    spans = stack_traces(telemetry_fixture)
+    assert len(spans) == 10
+    for span in spans:
+        assert type(span) is Span
 
 
-# fixtures
-
-
-@pytest.fixture
-def metrics_trace_fixture() -> Telemetry:
-    return load_fixture("metrics_trace.pkl")
-
-
-@pytest.fixture
-def client_server_fixture() -> Telemetry:
-    return load_fixture("client_server.pkl")
-
-
-@pytest.fixture
-def post_data_fixture():
-    return load_fixture("post_data.pkl")
-
-
-@pytest.fixture
-def request_context_fixture():
-    return load_fixture("request_context.pkl")
+def test_stack_metrics(telemetry_fixture):
+    metrics = stack_metrics(telemetry_fixture)
+    assert len(metrics) == 21
+    for metric in metrics:
+        assert type(metric) is Metric
 
 
 # utils
-
-
-def telemetry_from_json(json_str: str) -> telemetry.Telemetry:
-    return telemetry_from_dict(json.loads(json_str))
-
-
-def telemetry_from_dict(d) -> telemetry.Telemetry:
-    return telemetry.Telemetry(
-        log_requests=d["log_requests"],
-        metric_requests=d["metric_requests"],
-        trace_requests=d["trace_requests"],
-    )
 
 
 fixtures_dir = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -206,6 +190,18 @@ def load_fixture(fname):
 
 def get_path_to_fixture(fname):
     return os.path.join(fixtures_dir, fname)
+
+
+def telemetry_from_json(json_str: str) -> telemetry.Telemetry:
+    return telemetry_from_dict(json.loads(json_str))
+
+
+def telemetry_from_dict(d) -> telemetry.Telemetry:
+    return telemetry.Telemetry(
+        log_requests=d["log_requests"],
+        metric_requests=d["metric_requests"],
+        trace_requests=d["trace_requests"],
+    )
 
 
 class FakeOtelTest:
@@ -230,4 +226,17 @@ class FakeOtelTest:
     def on_stop(
         self, tel: Telemetry, stdout: str, stderr: str, returncode: int
     ) -> None:
+        pass
+
+
+class FakeSubProcess:
+
+    returncode = 0
+
+    def communicate(self, timeout):
+        stdout = ""
+        stderr = ""
+        return stdout, stderr
+
+    def kill(self):
         pass

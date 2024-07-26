@@ -115,6 +115,14 @@ def span_names(telemetry) -> set:
     return {leaf.name for leaf in stack_leaves(telemetry, *_trace_path)}
 
 
+def stack_metrics(telemetry):
+    return stack_leaves(telemetry, *_metrics_path)
+
+
+def stack_traces(telemetry):
+    return stack_leaves(telemetry, *_trace_path)
+
+
 def stack_leaves(telemetry, k1, k2, k3, k4):
     out = []
     for a1 in getattr(telemetry, k1):
