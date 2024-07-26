@@ -17,7 +17,7 @@ class _LogsServiceServicer(logs_service_pb2_grpc.LogsServiceServicer):
         self.handle_request = handle_request
 
     def Export(self, request, context):  # noqa: N802
-        self.handle_request(request, context)
+        self.handle_request(request, headers_from_context(context))
         return logs_service_pb2.ExportLogsServiceResponse()
 
 
@@ -26,7 +26,7 @@ class _TraceServiceServicer(trace_service_pb2_grpc.TraceServiceServicer):
         self.handle_request = handle_request
 
     def Export(self, request, context):  # noqa: N802
-        self.handle_request(request, context)
+        self.handle_request(request, headers_from_context(context))
         return trace_service_pb2.ExportTraceServiceResponse()
 
 
@@ -35,5 +35,10 @@ class _MetricsServiceServicer(metrics_service_pb2_grpc.MetricsServiceServicer):
         self.handle_request = handle_request
 
     def Export(self, request, context):  # noqa: N802
-        self.handle_request(request, context)
+        self.handle_request(request, headers_from_context(context))
         return metrics_service_pb2.ExportMetricsServiceResponse()
+
+
+def headers_from_context(ctx):
+    return {k: v for k, v in ctx.invocation_metadata()}
+

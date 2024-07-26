@@ -4,12 +4,18 @@ import pickle
 from typing import Mapping, Optional, Sequence
 
 import pytest
+from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
+    ExportMetricsServiceRequest,
+)
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+    ExportTraceServiceRequest,
+)
 
 from oteltest import OtelTest, telemetry, Telemetry
 from oteltest.private import (
     get_next_json_file,
     is_test_class,
-    load_test_class_for_script,
+    load_oteltest_class_for_script,
     run_python_script,
     save_telemetry_json,
     Venv,
@@ -56,6 +62,9 @@ def test_is_test_class():
         ) -> None:
             pass
 
+        def is_http(self) -> bool:
+            pass
+
     class MyOtelTest:
         pass
 
@@ -66,7 +75,7 @@ def test_is_test_class():
 
 def test_load_test_class_for_script():
     path = os.path.join(fixtures_dir, "script.py")
-    klass = load_test_class_for_script("script", path)
+    klass = load_oteltest_class_for_script("script", path)
     assert klass is not None
 
 
@@ -160,6 +169,16 @@ def metrics_trace_fixture() -> Telemetry:
 @pytest.fixture
 def client_server_fixture() -> Telemetry:
     return load_fixture("client_server.pkl")
+
+
+@pytest.fixture
+def post_data_fixture():
+    return load_fixture("post_data.pkl")
+
+
+@pytest.fixture
+def request_context_fixture():
+    return load_fixture("request_context.pkl")
 
 
 # utils

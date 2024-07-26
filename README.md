@@ -39,7 +39,7 @@ This will attempt to run all [oteltest-eligible](#script-eligibility) scripts in
 
 Running `oteltest` against a directory containing only `my_script.py`
 
-1) Starts an OTLP listener ([otelsink](#otelsink))
+1) Starts an OTLP or HTTP listener ([otelsink](#otelsink))
 2) Creates a new Python virtual environment with `requirements()`
 3) In that environment, starts running `my_script.py` in a subprocess
 4) Calls `on_start()`
@@ -87,6 +87,9 @@ class MyOtelTest:
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
         print(f"script completed with return code {returncode}")
+
+    def is_http(self) -> bool:
+        return False
 ```
 
 Here's a client-server example:
@@ -148,25 +151,36 @@ class FlaskOtelTest:
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
         # you can do something with the telemetry here, e.g. make assertions etc.
         print("done")
+
+    def is_http(self) -> bool:
+        return False
 ```
 
 ### otelsink
 
-`otelsink` is a gRPC server that listens for OTel metrics, traces, and logs.
+`otelsink` is a gRPC (or HTTP) server that listens for OTel metrics, traces, and logs.
 
 #### Operation
 
 You can run otelsink either from the command line by using the `otelsink` command (installed when you
 `pip install oteltest`), or programmatically.
 
-Either way, `otelsink` runs a gRPC server listening on 0.0.0.0:4317.
+Either way, `otelsink` runs a gRPC server listening on 0.0.0.0:4317 by default. To run an HTTP server listening on 4318,
+use the `--http` flag.
 
 #### Command Line
 
 ```
 % otelsink
-starting otelsink with print handler
+starting otelsink
+- Set up grpc sink at address 0.0.0.0:4317
 ```
+
+```
+% otelsink --http
+- Set up http sink on port 4318
+```
+
 
 #### Programmatic
 
@@ -174,13 +188,13 @@ starting otelsink with print handler
 from oteltest.sink import GrpcSink, RequestHandler
 
 class MyHandler(RequestHandler):
-    def handle_logs(self, request, context):
+    def handle_logs(self, request, headers):
         print(f"received log request: {request}")
 
-    def handle_metrics(self, request, context):
+    def handle_metrics(self, request, headers):
         print(f"received metrics request: {request}")
 
-    def handle_trace(self, request, context):
+    def handle_trace(self, request, headers):
         print(f"received trace request: {request}")
 
 

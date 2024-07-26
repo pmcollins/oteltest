@@ -17,10 +17,13 @@ if __name__ == "__main__":
 # contains "OtelTest".
 class MyOtelTest:
     def requirements(self):
-        return "opentelemetry-distro", "opentelemetry-exporter-otlp-proto-grpc"
+        return "opentelemetry-distro", "opentelemetry-exporter-otlp-proto-http"
 
     def environment_variables(self):
-        return {"OTEL_SERVICE_NAME": SERVICE_NAME}
+        return {
+            "OTEL_SERVICE_NAME": SERVICE_NAME,
+            "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+        }
 
     def wrapper_command(self):
         return "opentelemetry-instrument"
@@ -30,3 +33,7 @@ class MyOtelTest:
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
         print(f"script completed with return code {returncode}")
+        print(f"telemetry: {telemetry}")
+
+    def is_http(self):
+        return True
