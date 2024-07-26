@@ -269,4 +269,3 @@ class AccumulatingHandler(RequestHandler):
 
     def telemetry_to_json(self):
         return self.telemetry.to_json()
-

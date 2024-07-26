@@ -107,7 +107,6 @@ class HttpSink:
         self.svr_thread.daemon = daemon
         print(f"- Set up http sink on port {port}")
 
-
     def start(self):
         self.svr_thread.start()
 
