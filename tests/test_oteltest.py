@@ -4,6 +4,7 @@ import pickle
 from typing import Mapping, Optional, Sequence
 
 import pytest
+from opentelemetry.proto.logs.v1.logs_pb2 import LogRecord
 from opentelemetry.proto.metrics.v1.metrics_pb2 import Metric
 from opentelemetry.proto.trace.v1.trace_pb2 import Span
 
@@ -16,7 +17,13 @@ from oteltest.private import (
     save_telemetry_json,
     Venv,
 )
-from oteltest.telemetry import stack_metrics, stack_traces
+from oteltest.telemetry import (
+    num_logs,
+    stack_leaves,
+    stack_logs,
+    stack_metrics,
+    stack_traces,
+)
 
 
 # fixtures
@@ -35,6 +42,11 @@ def client_server_fixture() -> Telemetry:
 @pytest.fixture
 def post_data_fixture():
     return load_fixture("post_data.pkl")
+
+
+@pytest.fixture
+def logs_fixture():
+    return load_fixture("logs.pkl")
 
 
 # tests
@@ -175,6 +187,17 @@ def test_stack_metrics(telemetry_fixture):
     assert len(metrics) == 21
     for metric in metrics:
         assert type(metric) is Metric
+
+
+def test_stack_logs(logs_fixture):
+    logs = stack_logs(logs_fixture)
+    assert len(logs) == 16
+    for log in logs:
+        assert type(log) is LogRecord
+
+
+def test_get_logs(logs_fixture):
+    assert num_logs(logs_fixture) == 16
 
 
 # utils
