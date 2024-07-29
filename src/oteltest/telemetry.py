@@ -97,6 +97,7 @@ class Telemetry:
 
 _metrics_path = ["metric_requests", "resource_metrics", "scope_metrics", "metrics"]
 _trace_path = ["trace_requests", "resource_spans", "scope_spans", "spans"]
+_logs_path = ["log_requests", "resource_logs", "scope_logs", "log_records"]
 
 
 def num_metrics(telemetry) -> int:
@@ -108,7 +109,11 @@ def metric_names(telemetry) -> set:
 
 
 def num_spans(telemetry) -> int:
-    return len(stack_leaves(telemetry, *_trace_path))
+    return len(stack_traces(telemetry))
+
+
+def num_logs(telemetry) -> int:
+    return len(stack_logs(telemetry))
 
 
 def span_names(telemetry) -> set:
@@ -121,6 +126,10 @@ def stack_metrics(telemetry):
 
 def stack_traces(telemetry):
     return stack_leaves(telemetry, *_trace_path)
+
+
+def stack_logs(telemetry):
+    return stack_leaves(telemetry, *_logs_path)
 
 
 def stack_leaves(telemetry, k1, k2, k3, k4):
