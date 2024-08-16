@@ -27,31 +27,31 @@ from oteltest import OtelTest, Telemetry
 from oteltest.sink import GrpcSink, HttpSink, RequestHandler
 
 
-def run(script_path: str, venv_parent_dir: str):
+def run(script_path: str, venv_parent_dir: str, json_dir: str):
     temp_dir = venv_parent_dir or tempfile.mkdtemp()
     print(f"- Using temp dir for venvs: {temp_dir}")
 
     if os.path.isdir(script_path):
-        handle_dir(script_path, temp_dir)
+        handle_dir(script_path, temp_dir, json_dir)
     elif os.path.isfile(script_path):
-        handle_file(script_path, temp_dir)
+        handle_file(script_path, temp_dir, json_dir)
     else:
         print(f"- {script_path} does not exist")
         return
 
 
-def handle_dir(dir_path, temp_dir):
+def handle_dir(dir_path, temp_dir, json_dir):
     sys.path.append(dir_path)
     for script in ls_scripts(dir_path):
         print(f"- Setting up environment for script {script}")
-        setup_script_environment(temp_dir, dir_path, script)
+        setup_script_environment(temp_dir, dir_path, script, json_dir)
 
 
-def handle_file(file_path, temp_dir):
+def handle_file(file_path, temp_dir, json_dir):
     print(f"- Setting up environment for file {file_path}")
     script_dir = os.path.dirname(file_path)
     sys.path.append(script_dir)
-    setup_script_environment(temp_dir, script_dir, os.path.basename(file_path))
+    setup_script_environment(temp_dir, script_dir, os.path.basename(file_path), json_dir)
 
 
 def ls_scripts(script_dir):
@@ -62,7 +62,7 @@ def ls_scripts(script_dir):
     return scripts
 
 
-def setup_script_environment(venv_parent: str, script_dir: str, script: str):
+def setup_script_environment(venv_parent: str, script_dir: str, script: str, json_dir_base: str):
     module_name = script[:-3]
     module_path = os.path.join(script_dir, script)
     oteltest_class = load_oteltest_class_for_script(module_name, module_path)
@@ -92,9 +92,10 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str):
     )
     print_subprocess_result(stdout, stderr, returncode)
 
-    filename = get_next_json_file(script_dir, module_name)
+    json_dir = os.path.join(script_dir, json_dir_base)
+    filename = get_next_json_file(json_dir, module_name)
     print(f"- Will save telemetry to {filename}")
-    save_telemetry_json(script_dir, filename, handler.telemetry_to_json())
+    save_telemetry_json(json_dir, filename, handler.telemetry_to_json())
 
     oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
     print(f"- PASSED: {script}")
@@ -102,6 +103,7 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str):
 
 def get_next_json_file(path_str: str, module_name: str):
     path = Path(path_str)
+    path.mkdir(exist_ok=True)
     max_index = -1
     for file in path.glob(f"{module_name}.*.json"):
         last_part = file.stem.split(".")[-1]
