@@ -11,6 +11,9 @@ def main():
         "-d", "--venv-parent-dir", type=str, required=False, help=d_help
     )
 
+    j_help = "An optional value to hold the directory into which json telemetry files are written"
+    parser.add_argument("-j", "--json-dir", type=str, required=False, help=j_help, default="json")
+
     parser.add_argument(
         "script_dir",
         type=str,
@@ -18,7 +21,7 @@ def main():
     )
 
     args = parser.parse_args()
-    run(args.script_dir, args.venv_parent_dir)
+    run(args.script_dir, args.venv_parent_dir, args.json_dir)
 
 
 if __name__ == "__main__":
