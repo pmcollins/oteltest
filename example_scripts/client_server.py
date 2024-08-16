@@ -19,8 +19,9 @@ if __name__ == "__main__":
     app.run(port=PORT, host=HOST)
 
 
-# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
-# contains "OtelTest".
+# We formally inherit from OtelTest here, but we don't have to if we have OtelTest in the name of the class. The
+# advantage of formally inheriting is that your IDE can fill in the method stubs for you. The advantage of not
+# formally inheriting is that you don't have to rely on the oteltest dependency.
 class FlaskOtelTest(OtelTest):
     def environment_variables(self) -> Mapping[str, str]:
         return {}
