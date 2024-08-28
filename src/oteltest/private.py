@@ -3,7 +3,6 @@ import importlib
 import importlib.util
 import inspect
 import os
-import pickle
 import shutil
 import subprocess
 import sys
@@ -229,7 +228,10 @@ class Venv:
         self.venv_dir = venv_dir
 
     def create(self):
-        venv.create(self.venv_dir, with_pip=True)
+        if os.path.exists(self.venv_dir):
+            print(f"- Path to virtual env [{self.venv_dir}] already exists, skipping creation")
+        else:
+            venv.create(self.venv_dir, with_pip=True)
 
     def path_to_executable(self, executable_name: str):
         return f"{self.venv_dir}/bin/{executable_name}"
