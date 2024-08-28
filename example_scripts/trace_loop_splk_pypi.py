@@ -1,17 +1,10 @@
-import time
-
-from opentelemetry import trace
+from lib import trace_loop
 
 SERVICE_NAME = "my-otel-test"
 NUM_ADDS = 12
 
 if __name__ == "__main__":
-    tracer = trace.get_tracer("my-tracer")
-    for i in range(NUM_ADDS):
-        with tracer.start_as_current_span("my-span"):
-            print(f"simple_loop.py: {i+1}/{NUM_ADDS}")
-            time.sleep(0.5)
-
+    trace_loop(NUM_ADDS)
 
 class MyOtelTest:
     def requirements(self):
