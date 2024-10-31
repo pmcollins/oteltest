@@ -56,7 +56,7 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str, jso
     module_path = os.path.join(script_dir, script)
     oteltest_class = load_oteltest_class_for_script(module_name, module_path)
     if oteltest_class is None:
-        print(f"Could not find oteltest class for module_name '{module_name}'")
+        print(f"- No oteltest class present in '{module_name}'")
         return
     oteltest_instance = oteltest_class()
 
@@ -123,7 +123,7 @@ def run_python_script(
         python_script_cmd.insert(0, script_venv.path_to_executable(wrapper_script))
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
-    print(f"- Popen subprocess: {python_script_cmd}")
+    print(f"- Start subprocess: {python_script_cmd}")
     proc = start_subprocess_func(
         python_script_cmd, oteltest_instance.environment_variables()
     )
@@ -155,10 +155,10 @@ def exec_onstart_callback(oteltest_instance, script):
         timeout = 0
     if timeout is None:
         print(
-            f"- Will wait indefinitely for {script} to finish: on_start() returned `None`"
+            f"- on_start() returned `None`, will wait for {script} to finish by itself"
         )
     else:
-        print(f"- Will wait for up to {timeout} seconds for {script} to finish")
+        print(f"- Will wait for {timeout} seconds for {script} to finish")
     return timeout
 
 
