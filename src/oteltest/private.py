@@ -7,23 +7,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import typing
 import venv
 from pathlib import Path
 
-from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
-    ExportLogsServiceRequest,
-)
-from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
-    ExportMetricsServiceRequest,
-)
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
-    ExportTraceServiceRequest,
-)
-
-from oteltest import OtelTest, Telemetry
-from oteltest.sink import GrpcSink, HttpSink, RequestHandler
+from oteltest import OtelTest
+from oteltest.sink import GrpcSink, HttpSink
+from oteltest.sink.handler import AccumulatingHandler
 
 
 def run(script_path: str, venv_parent_dir: str, json_dir: str):
@@ -240,36 +230,3 @@ class Venv:
         shutil.rmtree(self.venv_dir)
 
 
-class AccumulatingHandler(RequestHandler):
-    def __init__(self):
-        self.start_time = time.time_ns()
-        self.telemetry = Telemetry()
-
-    def handle_logs(self, request: ExportLogsServiceRequest, headers):  # noqa: ARG002
-        self.telemetry.add_log(
-            request,
-            headers,
-            self.get_test_elapsed_ms(),
-        )
-
-    def handle_metrics(
-        self, request: ExportMetricsServiceRequest, headers
-    ):  # noqa: ARG002
-        self.telemetry.add_metric(
-            request,
-            headers,
-            self.get_test_elapsed_ms(),
-        )
-
-    def handle_trace(self, request: ExportTraceServiceRequest, headers):  # noqa: ARG002
-        self.telemetry.add_trace(
-            request,
-            headers,
-            self.get_test_elapsed_ms(),
-        )
-
-    def get_test_elapsed_ms(self):
-        return round((time.time_ns() - self.start_time) / 1e6)
-
-    def telemetry_to_json(self):
-        return self.telemetry.to_json()

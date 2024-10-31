@@ -1,4 +1,3 @@
-import abc
 import threading
 from concurrent import futures
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -23,33 +22,12 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
     ExportTraceServiceRequest,  # type: ignore
 )
 
+from oteltest.sink.handler import PrintHandler, RequestHandler
 from oteltest.sink.private import (
     _LogsServiceServicer,
     _MetricsServiceServicer,
     _TraceServiceServicer,
 )
-
-
-class RequestHandler(abc.ABC):
-    """
-    The RequestHandler interface is meant to be implemented by users of the otelsink API. If you use the API,
-    you'll want to create a RequestHandler implementation, instantiate it, and pass the instance to the GrpcSink
-    constructor. As messages arrive, the callbacks defined by this interface will be invoked.
-
-    grpc_sink = GrpcSink(MyRequestHandler())
-    """
-
-    @abc.abstractmethod
-    def handle_logs(self, request: ExportLogsServiceRequest, headers):
-        pass
-
-    @abc.abstractmethod
-    def handle_metrics(self, request: ExportMetricsServiceRequest, headers):
-        pass
-
-    @abc.abstractmethod
-    def handle_trace(self, request: ExportTraceServiceRequest, headers):
-        pass
 
 
 class GrpcSink:
@@ -153,21 +131,6 @@ class HttpSink:
 
     def stop(self):
         self.svr_thread.join()
-
-
-class PrintHandler(RequestHandler):
-    """
-    A RequestHandler implementation that prints the received messages.
-    """
-
-    def handle_logs(self, request, headers):  # noqa: ARG002
-        print(f"log request: {request}", flush=True)  # noqa: T201
-
-    def handle_metrics(self, request, context):  # noqa: ARG002
-        print(f"metrics request: {request}", flush=True)  # noqa: T201
-
-    def handle_trace(self, request, context):  # noqa: ARG002
-        print(f"trace request: {request}", flush=True)  # noqa: T201
 
 
 def run_grpc():
