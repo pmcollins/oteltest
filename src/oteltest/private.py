@@ -14,19 +14,22 @@ from pathlib import Path
 from oteltest import OtelTest
 from oteltest.sink import GrpcSink, HttpSink
 from oteltest.sink.handler import AccumulatingHandler
+from oteltest.version import __version__
 
 
-def run(script_path: str, venv_parent_dir: str, json_dir: str):
+def run(script_paths: [str], venv_parent_dir: str, json_dir: str):
+    print(f"oteltest version {__version__}")
+
     temp_dir = venv_parent_dir or tempfile.mkdtemp()
     print(f"- Using temp dir for venvs: {temp_dir}")
 
-    if os.path.isdir(script_path):
-        handle_dir(script_path, temp_dir, json_dir)
-    elif os.path.isfile(script_path):
-        handle_file(script_path, temp_dir, json_dir)
-    else:
-        print(f"- {script_path} does not exist")
-        return
+    for script_path in script_paths:
+        if os.path.isdir(script_path):
+            handle_dir(script_path, temp_dir, json_dir)
+        elif os.path.isfile(script_path):
+            handle_file(script_path, temp_dir, json_dir)
+        else:
+            print(f"- argument {script_path} does not exist")
 
 
 def handle_dir(dir_path, temp_dir, json_dir):
