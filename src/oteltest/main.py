@@ -15,13 +15,13 @@ def main():
     parser.add_argument("-j", "--json-dir", type=str, required=False, help=j_help, default="json")
 
     parser.add_argument(
-        "script_dir",
-        type=str,
-        help="The directory containing oteltest scripts at its top level",
+        "script_paths",
+        nargs="+",
+        help="One or more oteltest files or directories containing oteltest scripts",
     )
 
     args = parser.parse_args()
-    run(args.script_dir, args.venv_parent_dir, args.json_dir)
+    run(args.script_paths, args.venv_parent_dir, args.json_dir)
 
 
 if __name__ == "__main__":
