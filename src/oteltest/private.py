@@ -43,7 +43,9 @@ def handle_file(file_path, temp_dir, json_dir):
     print(f"- Setting up environment for file {file_path}")
     script_dir = os.path.dirname(file_path)
     sys.path.append(script_dir)
-    setup_script_environment(temp_dir, script_dir, os.path.basename(file_path), json_dir)
+    setup_script_environment(
+        temp_dir, script_dir, os.path.basename(file_path), json_dir
+    )
 
 
 def ls_scripts(script_dir):
@@ -54,7 +56,9 @@ def ls_scripts(script_dir):
     return scripts
 
 
-def setup_script_environment(venv_parent: str, script_dir: str, script: str, json_dir_base: str):
+def setup_script_environment(
+    venv_parent: str, script_dir: str, script: str, json_dir_base: str
+):
     module_name = script[:-3]
     module_path = os.path.join(script_dir, script)
     oteltest_class = load_oteltest_class_for_script(module_name, module_path)
@@ -130,7 +134,11 @@ def run_python_script(
     proc = start_subprocess_func(
         python_script_cmd, oteltest_instance.environment_variables()
     )
-    timeout = exec_onstart_callback(oteltest_instance, script)
+    timeout = oteltest_instance.on_start()
+    if timeout is None:
+        print(f"- Will wait for {script} to finish by itself")
+    else:
+        print(f"- Will wait for {timeout} seconds for {script} to finish")
     try:
         stdout, stderr = proc.communicate(timeout=timeout)
         return stdout, stderr, proc.returncode
@@ -148,21 +156,6 @@ def start_subprocess(python_script_cmd, env):
         text=True,
         env=env,
     )
-
-
-def exec_onstart_callback(oteltest_instance, script):
-    try:
-        timeout = oteltest_instance.on_start()
-    except Exception as ex:  # pylint: disable=W0718
-        print(f"- Setting timeout to zero: on_start() threw an exception: {ex}")
-        timeout = 0
-    if timeout is None:
-        print(
-            f"- on_start() returned `None`, will wait for {script} to finish by itself"
-        )
-    else:
-        print(f"- Will wait for {timeout} seconds for {script} to finish")
-    return timeout
 
 
 def decode(b: typing.Optional[bytes]) -> str:
@@ -222,7 +215,9 @@ class Venv:
 
     def create(self):
         if os.path.exists(self.venv_dir):
-            print(f"- Path to virtual env [{self.venv_dir}] already exists, skipping creation")
+            print(
+                f"- Path to virtual env [{self.venv_dir}] already exists, skipping creation"
+            )
         else:
             venv.create(self.venv_dir, with_pip=True)
 
@@ -231,5 +226,3 @@ class Venv:
 
     def rm(self):
         shutil.rmtree(self.venv_dir)
-
-
