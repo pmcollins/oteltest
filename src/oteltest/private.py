@@ -9,6 +9,7 @@ import sys
 import tempfile
 import typing
 import venv
+from logging import Logger
 from pathlib import Path
 
 from oteltest import OtelTest
@@ -17,34 +18,34 @@ from oteltest.sink.handler import AccumulatingHandler
 from oteltest.version import __version__
 
 
-def run(script_paths: [str], venv_parent_dir: str, json_dir: str):
-    print(f"oteltest version {__version__}")
+def run(script_paths: [str], venv_parent_dir: str, json_dir: str, logger: Logger):
+    logger.info("oteltest version %s", __version__)
 
     temp_dir = venv_parent_dir or tempfile.mkdtemp()
-    print(f"- Using temp dir for venvs: {temp_dir}")
+    logger.info("Using temp dir for venvs: %s", temp_dir)
 
     for script_path in script_paths:
         if os.path.isdir(script_path):
-            handle_dir(script_path, temp_dir, json_dir)
+            handle_dir(script_path, temp_dir, json_dir, logger)
         elif os.path.isfile(script_path):
-            handle_file(script_path, temp_dir, json_dir)
+            handle_file(script_path, temp_dir, json_dir, logger)
         else:
-            print(f"- argument {script_path} does not exist")
+            logger.warning("argument %s does not exist", script_path)
 
 
-def handle_dir(dir_path, temp_dir, json_dir):
+def handle_dir(dir_path, temp_dir, json_dir, logger):
     sys.path.append(dir_path)
     for script in ls_scripts(dir_path):
-        print(f"- Setting up environment for script {script}")
-        setup_script_environment(temp_dir, dir_path, script, json_dir)
+        logger.info("Setting up environment for script %s", script)
+        setup_script_environment(temp_dir, dir_path, script, json_dir, logger)
 
 
-def handle_file(file_path, temp_dir, json_dir):
-    print(f"- Setting up environment for file {file_path}")
+def handle_file(file_path, temp_dir, json_dir, logger):
+    logger.info("Setting up environment for file %s", file_path)
     script_dir = os.path.dirname(file_path)
     sys.path.append(script_dir)
     setup_script_environment(
-        temp_dir, script_dir, os.path.basename(file_path), json_dir
+        temp_dir, script_dir, os.path.basename(file_path), json_dir, logger
     )
 
 
@@ -57,13 +58,13 @@ def ls_scripts(script_dir):
 
 
 def setup_script_environment(
-    venv_parent: str, script_dir: str, script: str, json_dir_base: str
+    venv_parent: str, script_dir: str, script: str, json_dir_base: str, logger: Logger
 ):
     module_name = script[:-3]
     module_path = os.path.join(script_dir, script)
-    oteltest_class = load_oteltest_class_for_script(module_name, module_path)
+    oteltest_class = load_oteltest_class_for_script(module_name, module_path, logger)
     if oteltest_class is None:
-        print(f"- No oteltest class present in '{module_name}'")
+        logger.info("No oteltest class present in [%s]", module_name)
         return
     oteltest_instance = oteltest_class()
 
@@ -74,27 +75,27 @@ def setup_script_environment(
         sink = GrpcSink(handler)
     sink.start()
 
-    script_venv = Venv(str(Path(venv_parent) / module_name))
+    script_venv = Venv(str(Path(venv_parent) / module_name), logger)
     script_venv.create()
 
     pip_path = script_venv.path_to_executable("pip")
 
     for req in oteltest_instance.requirements():
-        print(f"- Will install requirement: '{req}'")
-        run_subprocess([pip_path, "install", req])
+        logger.info("Will install requirement: '%s'", req)
+        run_subprocess([pip_path, "install", req], logger)
 
     stdout, stderr, returncode = run_python_script(
-        start_subprocess, script_dir, script, oteltest_instance, script_venv
+        start_subprocess, script_dir, script, oteltest_instance, script_venv, logger
     )
-    print_subprocess_result(stdout, stderr, returncode)
+    print_subprocess_result(stdout, stderr, returncode, logger)
 
     json_dir = os.path.join(script_dir, json_dir_base)
     filename = get_next_json_file(json_dir, module_name)
-    print(f"- Will save telemetry to {filename}")
+    logger.info("Will save telemetry to %s", filename)
     save_telemetry_json(json_dir, filename, handler.telemetry_to_json())
 
     oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
-    print(f"- PASSED: {script}")
+    logger.info("PASSED: %s", script)
 
 
 def get_next_json_file(path_str: str, module_name: str):
@@ -117,9 +118,14 @@ def save_telemetry_json(script_dir: str, file_name: str, json_str: str):
 
 
 def run_python_script(
-    start_subprocess_func, script_dir: str, script: str, oteltest_instance, script_venv
+    start_subprocess_func,
+    script_dir: str,
+    script: str,
+    oteltest_instance,
+    script_venv,
+    logger: Logger,
 ) -> typing.Tuple[str, str, int]:
-    print(f"- Running python script: {script}")
+    logger.info("Running python script: %s", script)
     python_script_cmd = [
         script_venv.path_to_executable("python"),
         str(Path(script_dir) / script),
@@ -130,21 +136,23 @@ def run_python_script(
         python_script_cmd.insert(0, script_venv.path_to_executable(wrapper_script))
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
-    print(f"- Start subprocess: {python_script_cmd}")
+    logger.info(f"Start subprocess: %s", python_script_cmd)
     proc = start_subprocess_func(
         python_script_cmd, oteltest_instance.environment_variables()
     )
-    timeout = oteltest_instance.on_start()
-    if timeout is None:
-        print(f"- Will wait for {script} to finish by itself")
+    timeout_seconds = oteltest_instance.on_start()
+    if timeout_seconds is None:
+        logger.info("Will wait for %s to finish by itself", script)
     else:
-        print(f"- Will wait for {timeout} seconds for {script} to finish")
+        logger.info(
+            "Will wait for %d seconds for %s to finish", timeout_seconds, script
+        )
     try:
-        stdout, stderr = proc.communicate(timeout=timeout)
+        stdout, stderr = proc.communicate(timeout=timeout_seconds)
         return stdout, stderr, proc.returncode
     except subprocess.TimeoutExpired as ex:
         proc.kill()
-        print(f"- Script {script} terminated")
+        logger.info("Script %s terminated", script)
         return decode(ex.stdout), decode(ex.stderr), proc.returncode
 
 
@@ -162,35 +170,43 @@ def decode(b: typing.Optional[bytes]) -> str:
     return b.decode("utf-8") if b else ""
 
 
-def run_subprocess(args):
-    print(f"- Subprocess: {args}")
+def run_subprocess(args, logger: Logger):
+    logger.info("Subprocess: %s", args)
     result = subprocess.run(
         args,
         capture_output=True,
         text=True,
         check=True,
     )
-    print_subprocess_result(result.stdout, result.stderr, result.returncode)
+    print_subprocess_result(result.stdout, result.stderr, result.returncode, logger)
 
 
-def print_subprocess_result(stdout: str, stderr: str, returncode: int):
-    print(f"- Return Code: {returncode}")
-    print("- Standard Output:")
+def print_subprocess_result(stdout: str, stderr: str, returncode: int, logger: Logger):
+    logger.info("Return Code: [%d]", returncode)
+    logger.info("Standard Output:")
     if stdout:
         print(stdout)
-    print("- Standard Error:")
+    logger.info("Standard Error:")
     if stderr:
         print(stderr)
-    print("- End Subprocess -\n")
+    logger.info("End Subprocess")
 
 
-def load_oteltest_class_for_script(module_name, module_path):
+def load_oteltest_class_for_script(module_name, module_path, logger: Logger):
+    logger.debug(
+        "loading spec from file: module_name [%s] module_path [%s]",
+        module_name,
+        module_path,
+    )
     spec = importlib.util.spec_from_file_location(module_name, module_path)
+    logger.debug("spec loaded: [%s]", spec)
     module = importlib.util.module_from_spec(spec)
+    logger.debug("module loaded: [%s]", module)
     spec.loader.exec_module(module)
     for attr_name in dir(module):
         value = getattr(module, attr_name)
         if is_test_class(value):
+            logger.debug("found test class: [%s]", value)
             return value
     return None
 
@@ -210,13 +226,15 @@ def is_strict_subclass(value):
 
 
 class Venv:
-    def __init__(self, venv_dir):
+    def __init__(self, venv_dir, logger: Logger):
         self.venv_dir = venv_dir
+        self.logger = logger
 
     def create(self):
         if os.path.exists(self.venv_dir):
-            print(
-                f"- Path to virtual env [{self.venv_dir}] already exists, skipping creation"
+            self.logger.info(
+                "Path to virtual env [%s] already exists, skipping creation",
+                self.venv_dir,
             )
         else:
             venv.create(self.venv_dir, with_pip=True)

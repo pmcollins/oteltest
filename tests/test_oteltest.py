@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pickle
 from typing import Mapping, Optional, Sequence
@@ -19,7 +20,6 @@ from oteltest.private import (
 )
 from oteltest.telemetry import (
     num_logs,
-    stack_leaves,
     stack_logs,
     stack_metrics,
     stack_traces,
@@ -105,7 +105,7 @@ def test_is_test_class():
 
 def test_load_test_class_for_script():
     path = os.path.join(fixtures_dir, "script.py")
-    klass = load_oteltest_class_for_script("script", path)
+    klass = load_oteltest_class_for_script("script", path, logging.getLogger())
     assert klass is not None
 
 
@@ -147,7 +147,7 @@ def test_span_attribute_by_name(client_server_fixture: Telemetry):
 
 
 def test_run_python_script():
-    env = {"aaa": "bbb"}
+    env_store = {"aaa": "bbb"}
 
     class Tester:
 
@@ -161,18 +161,20 @@ def test_run_python_script():
             return FakeSubProcess()
 
     t = Tester()
+    logger = logging.getLogger()
     run_python_script(
         t.start_subprocess,
         "script_dir",
         "script",
-        FakeOtelTest(env=env),
-        Venv("venv_dir"),
+        FakeOtelTest(env=env_store),
+        Venv("venv_dir", logger),
+        logger
     )
     assert t.python_script_cmd == [
         "venv_dir/bin/python",
         "script_dir/script",
     ]
-    assert t.env == env
+    assert t.env == env_store
 
 
 def test_stack_traces(telemetry_fixture):
