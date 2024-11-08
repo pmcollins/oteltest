@@ -182,7 +182,7 @@ def run_subprocess(args, logger: Logger):
 
 
 def print_subprocess_result(stdout: str, stderr: str, returncode: int, logger: Logger):
-    logger.info("Return Code: [%d]", returncode)
+    logger.info("Return Code: [%s]", returncode)  # %s because can be None
     logger.info("Standard Output:")
     if stdout:
         print(stdout)
