@@ -1,3 +1,5 @@
+import logging
+import socket
 import threading
 from concurrent import futures
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -30,6 +32,21 @@ from oteltest.sink.private import (
 )
 
 
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(1)
+        try:
+            s.bind(("127.0.0.1", port))
+            return False
+        except socket.error:
+            return True
+
+
+def raise_if_port_in_use(port):
+    if is_port_in_use(port):
+        raise Exception(f"port {port} is in use")
+
+
 class GrpcSink:
     """
     This is an OTel GRPC server to which you can send metrics, traces, and
@@ -39,8 +56,9 @@ class GrpcSink:
     def __init__(
         self,
         request_handler: RequestHandler,
+        logger: logging.Logger,
         max_workers: int = 10,
-        address: str = "0.0.0.0:4317",
+        port: int = 4317,
     ):
         self.svr = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
         trace_service_pb2_grpc.add_TraceServiceServicer_to_server(
@@ -52,8 +70,11 @@ class GrpcSink:
         logs_service_pb2_grpc.add_LogsServiceServicer_to_server(
             _LogsServiceServicer(request_handler.handle_logs), self.svr
         )
+        self.logger = logger
+        self.port = port
+        address = f"0.0.0.0:{port}"
         self.svr.add_insecure_port(address)
-        print(f"- Set up grpc sink at address {address}")
+        logger.info(f"grpc sink at address {address} ready to start")
 
     def start(self):
         """Starts the server. Does not block."""
@@ -64,7 +85,7 @@ class GrpcSink:
         try:
             self.svr.wait_for_termination()
         except BaseException:
-            print("terminated")
+            self.logger.info("terminated")
 
     def stop(self):
         """Stops the server immediately."""
@@ -73,8 +94,9 @@ class GrpcSink:
 
 class HttpSink:
 
-    def __init__(self, listener, port=4318, daemon=True):
+    def __init__(self, listener, logger: logging.Logger, port=4318, daemon=True):
         self.listener = listener
+        self.logger = logger
         self.port = port
         self.handlers = {
             "/v1/traces": self.handle_trace,
@@ -83,7 +105,7 @@ class HttpSink:
         }
         self.svr_thread = threading.Thread(target=self.run_server)
         self.svr_thread.daemon = daemon
-        print(f"- Set up http sink on port {port}")
+        self.logger.info(f"Set up http sink on port {port}")
 
     def start(self):
         self.svr_thread.start()
@@ -133,12 +155,18 @@ class HttpSink:
         self.svr_thread.join()
 
 
-def run_grpc():
-    sink = GrpcSink(PrintHandler())
+def run_grpc(logger):
+    logger.info("Starting grpc server")
+
+    raise_if_port_in_use(4317)
+    sink = GrpcSink(PrintHandler(), logger)
     sink.start()
     sink.wait_for_termination()
 
 
-def run_http():
+def run_http(logger):
+    logger.info("Starting http server")
+
+    raise_if_port_in_use(4318)
     sink = HttpSink(PrintHandler(), daemon=False)
     sink.start()
