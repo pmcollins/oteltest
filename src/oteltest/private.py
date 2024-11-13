@@ -13,7 +13,7 @@ from logging import Logger
 from pathlib import Path
 
 from oteltest import OtelTest
-from oteltest.sink import GrpcSink, HttpSink
+from oteltest.sink import GrpcSink, HttpSink, raise_if_port_in_use
 from oteltest.sink.handler import AccumulatingHandler
 from oteltest.version import __version__
 
@@ -70,9 +70,11 @@ def setup_script_environment(
 
     handler = AccumulatingHandler()
     if hasattr(oteltest_instance, "is_http") and oteltest_instance.is_http():
-        sink = HttpSink(handler)
+        raise_if_port_in_use(4318)
+        sink = HttpSink(handler, logger)
     else:
-        sink = GrpcSink(handler)
+        raise_if_port_in_use(4317)
+        sink = GrpcSink(handler, logger)
     sink.start()
 
     script_venv = Venv(str(Path(venv_parent) / module_name), logger)
