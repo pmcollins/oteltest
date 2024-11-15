@@ -2,10 +2,10 @@ import argparse
 import logging
 
 from oteltest.private import run
-
+from oteltest.version import __version__ as version
 
 def main():
-    parser = argparse.ArgumentParser(description="OpenTelemetry Python Tester")
+    parser = argparse.ArgumentParser(description=f"Version {version}")
 
     d_help = "An optional override directory to hold per-script venv directories."
     parser.add_argument(
