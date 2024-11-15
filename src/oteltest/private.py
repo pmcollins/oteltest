@@ -98,6 +98,7 @@ def setup_script_environment(
 
     oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
     logger.info("PASSED: %s", script)
+    sink.stop()
 
 
 def get_next_json_file(path_str: str, module_name: str):
