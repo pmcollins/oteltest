@@ -19,10 +19,11 @@ from oteltest.private import (
     Venv,
 )
 from oteltest.telemetry import (
-    num_logs,
-    stack_logs,
-    stack_metrics,
-    stack_traces,
+    count_logs,
+    get_logs,
+    get_metrics,
+    get_traces,
+    has_log_attribute,
 )
 
 
@@ -30,8 +31,13 @@ from oteltest.telemetry import (
 
 
 @pytest.fixture
-def telemetry_fixture() -> Telemetry:
+def metrics_and_traces_telemetry_fixture() -> Telemetry:
     return load_fixture("metrics_and_traces.pkl")
+
+
+@pytest.fixture
+def logs_telemetry_fixture() -> Telemetry:
+    return load_fixture("telemetry_w_logs.pkl")
 
 
 @pytest.fixture
@@ -109,12 +115,12 @@ def test_load_test_class_for_script():
     assert klass is not None
 
 
-def test_telemetry_functions(telemetry_fixture: Telemetry):
-    assert len(telemetry_fixture.trace_requests)
-    assert len(telemetry_fixture.trace_requests)
-    assert telemetry.num_spans(telemetry_fixture) == 10
-    assert telemetry.num_metrics(telemetry_fixture) == 21
-    assert telemetry.metric_names(telemetry_fixture) == {
+def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
+    assert len(metrics_and_traces_telemetry_fixture.trace_requests)
+    assert len(metrics_and_traces_telemetry_fixture.trace_requests)
+    assert telemetry.count_spans(metrics_and_traces_telemetry_fixture) == 10
+    assert telemetry.count_metrics(metrics_and_traces_telemetry_fixture) == 21
+    assert telemetry.get_metric_names(metrics_and_traces_telemetry_fixture) == {
         "loop-counter",
         "process.runtime.cpython.context_switches",
         "process.runtime.cpython.cpu.utilization",
@@ -137,7 +143,7 @@ def test_telemetry_functions(telemetry_fixture: Telemetry):
         "system.swap.utilization",
         "system.thread_count",
     }
-    span = telemetry.first_span(telemetry_fixture)
+    span = telemetry.first_span(metrics_and_traces_telemetry_fixture)
     assert span.trace_id.hex() == "0adffbc2cb9f3cdb09f6801a788da973"
 
 
@@ -168,7 +174,7 @@ def test_run_python_script():
         "script",
         FakeOtelTest(env=env_store),
         Venv("venv_dir", logger),
-        logger
+        logger,
     )
     assert t.python_script_cmd == [
         "venv_dir/bin/python",
@@ -177,29 +183,33 @@ def test_run_python_script():
     assert t.env == env_store
 
 
-def test_stack_traces(telemetry_fixture):
-    spans = stack_traces(telemetry_fixture)
+def test_get_traces(metrics_and_traces_telemetry_fixture):
+    spans = get_traces(metrics_and_traces_telemetry_fixture)
     assert len(spans) == 10
     for span in spans:
         assert type(span) is Span
 
 
-def test_stack_metrics(telemetry_fixture):
-    metrics = stack_metrics(telemetry_fixture)
+def test_get_metrics(metrics_and_traces_telemetry_fixture):
+    metrics = get_metrics(metrics_and_traces_telemetry_fixture)
     assert len(metrics) == 21
     for metric in metrics:
         assert type(metric) is Metric
 
 
-def test_stack_logs(logs_fixture):
-    logs = stack_logs(logs_fixture)
+def test_logs_fixture(logs_fixture):
+    assert count_logs(logs_fixture) == 16
+
+
+def test_get_logs(logs_fixture):
+    logs = get_logs(logs_fixture)
     assert len(logs) == 16
     for log in logs:
         assert type(log) is LogRecord
 
 
-def test_get_logs(logs_fixture):
-    assert num_logs(logs_fixture) == 16
+def test_has_log_attribute(logs_telemetry_fixture):
+    assert has_log_attribute(logs_telemetry_fixture, "profiling.data.format")
 
 
 # utils

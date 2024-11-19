@@ -41,9 +41,9 @@ class MyOtelTest:
         pass
 
     def on_stop(self, tel, stdout: str, stderr: str, returncode: int):
-        from oteltest.telemetry import num_logs
+        from oteltest.telemetry import count_logs
 
-        assert num_logs(tel) == NUM_LOGS
+        assert count_logs(tel) == NUM_LOGS
 
     def is_http(self):
         return False
