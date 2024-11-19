@@ -100,39 +100,47 @@ _trace_path = ["trace_requests", "resource_spans", "scope_spans", "spans"]
 _logs_path = ["log_requests", "resource_logs", "scope_logs", "log_records"]
 
 
-def num_metrics(telemetry) -> int:
-    return len(stack_leaves(telemetry, *_metrics_path))
+def has_log_attribute(tel, key) -> bool:
+    for log in get_logs(tel):
+        for attribute in log.attributes:
+            if attribute.key == key:
+                return True
+    return False
 
 
-def metric_names(telemetry) -> set:
-    return {leaf.name for leaf in stack_leaves(telemetry, *_metrics_path)}
+def count_metrics(telemetry) -> int:
+    return len(_get_leaves(telemetry, *_metrics_path))
 
 
-def num_spans(telemetry) -> int:
-    return len(stack_traces(telemetry))
+def get_metric_names(telemetry) -> set:
+    return {leaf.name for leaf in _get_leaves(telemetry, *_metrics_path)}
 
 
-def num_logs(telemetry) -> int:
-    return len(stack_logs(telemetry))
+def count_spans(telemetry) -> int:
+    return len(get_traces(telemetry))
+
+
+def count_logs(telemetry) -> int:
+    return len(get_logs(telemetry))
 
 
 def span_names(telemetry) -> set:
-    return {leaf.name for leaf in stack_leaves(telemetry, *_trace_path)}
+    return {leaf.name for leaf in _get_leaves(telemetry, *_trace_path)}
 
 
-def stack_metrics(telemetry):
-    return stack_leaves(telemetry, *_metrics_path)
+def get_metrics(telemetry):
+    return _get_leaves(telemetry, *_metrics_path)
 
 
-def stack_traces(telemetry):
-    return stack_leaves(telemetry, *_trace_path)
+def get_traces(telemetry):
+    return _get_leaves(telemetry, *_trace_path)
 
 
-def stack_logs(telemetry):
-    return stack_leaves(telemetry, *_logs_path)
+def get_logs(telemetry):
+    return _get_leaves(telemetry, *_logs_path)
 
 
-def stack_leaves(telemetry, k1, k2, k3, k4):
+def _get_leaves(telemetry, k1, k2, k3, k4):
     out = []
     for a1 in getattr(telemetry, k1):
         for a2 in getattr(a1.pbreq, k2):
