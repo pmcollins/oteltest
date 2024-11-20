@@ -1,9 +1,16 @@
 import abc
 import time
 
-from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import ExportLogsServiceRequest
-from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import ExportMetricsServiceRequest
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
+from google.protobuf.json_format import MessageToDict
+from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
+    ExportLogsServiceRequest,
+)
+from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
+    ExportMetricsServiceRequest,
+)
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+    ExportTraceServiceRequest,
+)
 
 from oteltest import Telemetry
 
@@ -36,13 +43,17 @@ class PrintHandler(RequestHandler):
     """
 
     def handle_logs(self, request, headers):  # noqa: ARG002
-        print(f"log request: {request}", flush=True)  # noqa: T201
+        print_request(request)
 
     def handle_metrics(self, request, context):  # noqa: ARG002
-        print(f"metrics request: {request}", flush=True)  # noqa: T201
+        print_request(request)
 
     def handle_trace(self, request, context):  # noqa: ARG002
-        print(f"trace request: {request}", flush=True)  # noqa: T201
+        print_request(request)
+
+
+def print_request(request):
+    print(str(MessageToDict(request)), flush=True)  # noqa: T201
 
 
 class AccumulatingHandler(RequestHandler):
