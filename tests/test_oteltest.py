@@ -20,7 +20,7 @@ from oteltest.private import (
 )
 from oteltest.telemetry import (
     count_logs,
-    get_logs,
+    get_attribute, get_logs,
     get_metrics,
     get_spans,
     has_log_attribute,
@@ -146,10 +146,30 @@ def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
     span = telemetry.first_span(metrics_and_traces_telemetry_fixture)
     assert span.trace_id.hex() == "0adffbc2cb9f3cdb09f6801a788da973"
 
+def foreach_span(tel, f):
+    spans = get_spans(tel)
+    for span in spans:
+        f(span)
+
+def all_spans_have_resource_attribute(tel: Telemetry, attrname):
+    trace_reqs = tel.get_trace_requests()
+    for req in trace_reqs:
+        for span in req.pbreq.resource_spans:
+            attr = get_attribute(span.resource.attributes, attrname)
+            if attr is None:
+                return False
+    return True
+
+def test_all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture: Telemetry):
+    assert all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture, "service.name")
+    assert not all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture, "foo")
+
 
 def test_span_attribute_by_name(client_server_fixture: Telemetry):
     span = telemetry.first_span(client_server_fixture)
     assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
+
+
 
 
 def test_run_python_script():
