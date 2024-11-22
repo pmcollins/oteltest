@@ -22,7 +22,7 @@ from oteltest.telemetry import (
     count_logs,
     get_logs,
     get_metrics,
-    get_traces,
+    get_spans,
     has_log_attribute,
 )
 
@@ -184,7 +184,7 @@ def test_run_python_script():
 
 
 def test_get_traces(metrics_and_traces_telemetry_fixture):
-    spans = get_traces(metrics_and_traces_telemetry_fixture)
+    spans = get_spans(metrics_and_traces_telemetry_fixture)
     assert len(spans) == 10
     for span in spans:
         assert type(span) is Span
