@@ -108,12 +108,19 @@ def has_log_attribute(tel, key) -> bool:
     return False
 
 
+def get_attribute(attributes, key):
+    for attribute in attributes:
+        if attribute.key == key:
+            return attribute
+    return None
+
+
 def count_metrics(telemetry) -> int:
-    return len(_get_leaves(telemetry, *_metrics_path))
+    return len(get_metrics(telemetry))
 
 
 def get_metric_names(telemetry) -> set:
-    return {leaf.name for leaf in _get_leaves(telemetry, *_metrics_path)}
+    return {leaf.name for leaf in get_metrics(telemetry)}
 
 
 def count_spans(telemetry) -> int:
@@ -124,8 +131,8 @@ def count_logs(telemetry) -> int:
     return len(get_logs(telemetry))
 
 
-def span_names(telemetry) -> set:
-    return {leaf.name for leaf in _get_leaves(telemetry, *_span_path)}
+def get_span_names(telemetry) -> set:
+    return {leaf.name for leaf in get_spans(telemetry)}
 
 
 def get_metrics(telemetry):
