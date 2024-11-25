@@ -1,5 +1,6 @@
 import dataclasses
 import json
+from collections.abc import Iterable
 from typing import List, Optional, Union
 
 from google.protobuf.json_format import MessageToDict
@@ -154,6 +155,20 @@ def _get_leaves(telemetry, k1, k2, k3, k4):
             for a3 in getattr(a2, k3):
                 for a4 in getattr(a3, k4):
                     out.append(a4)
+    return out
+
+
+def extract_leaves(items, key, *remaining_keys):
+    out = []
+    for item in items if isinstance(items, Iterable) else [items]:
+        next_items = getattr(item, key)
+        if remaining_keys:
+            out.extend(extract_leaves(next_items, *remaining_keys))
+        else:
+            if isinstance(next_items, Iterable):
+                out.extend(next_items)
+            else:
+                out.append(next_items)
     return out
 
 
