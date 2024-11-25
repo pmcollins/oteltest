@@ -118,8 +118,6 @@ def test_load_test_class_for_script():
 
 
 def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
-    assert len(metrics_and_traces_telemetry_fixture.trace_requests)
-    assert len(metrics_and_traces_telemetry_fixture.trace_requests)
     assert telemetry.count_spans(metrics_and_traces_telemetry_fixture) == 10
     assert telemetry.count_metrics(metrics_and_traces_telemetry_fixture) == 21
     assert telemetry.get_metric_names(metrics_and_traces_telemetry_fixture) == {
