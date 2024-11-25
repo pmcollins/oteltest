@@ -20,6 +20,8 @@ from oteltest.private import (
 )
 from oteltest.telemetry import (
     count_logs,
+    extract_leaves,
+    get_logs,
     get_attribute, get_logs,
     get_metrics,
     get_spans,
@@ -116,8 +118,6 @@ def test_load_test_class_for_script():
 
 
 def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
-    assert len(metrics_and_traces_telemetry_fixture.trace_requests)
-    assert len(metrics_and_traces_telemetry_fixture.trace_requests)
     assert telemetry.count_spans(metrics_and_traces_telemetry_fixture) == 10
     assert telemetry.count_metrics(metrics_and_traces_telemetry_fixture) == 21
     assert telemetry.get_metric_names(metrics_and_traces_telemetry_fixture) == {
@@ -230,6 +230,14 @@ def test_get_logs(logs_fixture):
 
 def test_has_log_attribute(logs_telemetry_fixture):
     assert has_log_attribute(logs_telemetry_fixture, "profiling.data.format")
+
+
+def test_extract_leaves(metrics_and_traces_telemetry_fixture):
+    tel = metrics_and_traces_telemetry_fixture
+    leaves = extract_leaves(
+        tel, "trace_requests", "pbreq", "resource_spans", "resource", "attributes"
+    )
+    assert len(leaves) == 18
 
 
 # utils

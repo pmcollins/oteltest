@@ -1,5 +1,6 @@
 import dataclasses
 import json
+from collections.abc import Iterable
 from typing import List, Optional, Union
 
 from google.protobuf.json_format import MessageToDict
@@ -95,9 +96,15 @@ class Telemetry:
         }
 
 
-_metrics_path = ["metric_requests", "resource_metrics", "scope_metrics", "metrics"]
-_span_path = ["trace_requests", "resource_spans", "scope_spans", "spans"]
-_logs_path = ["log_requests", "resource_logs", "scope_logs", "log_records"]
+_metrics_path = [
+    "metric_requests",
+    "pbreq",
+    "resource_metrics",
+    "scope_metrics",
+    "metrics",
+]
+_span_path = ["trace_requests", "pbreq", "resource_spans", "scope_spans", "spans"]
+_logs_path = ["log_requests", "pbreq", "resource_logs", "scope_logs", "log_records"]
 
 
 def has_log_attribute(tel, key) -> bool:
@@ -136,24 +143,28 @@ def get_span_names(telemetry) -> set:
 
 
 def get_metrics(telemetry):
-    return _get_leaves(telemetry, *_metrics_path)
+    return extract_leaves(telemetry, *_metrics_path)
 
 
 def get_spans(telemetry):
-    return _get_leaves(telemetry, *_span_path)
+    return extract_leaves(telemetry, *_span_path)
 
 
 def get_logs(telemetry):
-    return _get_leaves(telemetry, *_logs_path)
+    return extract_leaves(telemetry, *_logs_path)
 
 
-def _get_leaves(telemetry, k1, k2, k3, k4):
+def extract_leaves(items, key, *remaining_keys):
     out = []
-    for a1 in getattr(telemetry, k1):
-        for a2 in getattr(a1.pbreq, k2):
-            for a3 in getattr(a2, k3):
-                for a4 in getattr(a3, k4):
-                    out.append(a4)
+    for item in items if isinstance(items, Iterable) else [items]:
+        next_items = getattr(item, key)
+        if remaining_keys:
+            out.extend(extract_leaves(next_items, *remaining_keys))
+        else:
+            if isinstance(next_items, Iterable):
+                out.extend(next_items)
+            else:
+                out.append(next_items)
     return out
 
 
