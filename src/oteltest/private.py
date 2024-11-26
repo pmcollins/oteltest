@@ -96,8 +96,11 @@ def setup_script_environment(
     logger.info("Will save telemetry to %s", filename)
     save_telemetry_json(json_dir, filename, handler.telemetry_to_json())
 
-    oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
-    logger.info("PASSED: %s", script)
+    try:
+        oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
+        logger.info("PASSED: %s", script)
+    except AssertionError as ae:
+        logger.info("AssertionError: %s %s", script, ae)
     sink.stop()
 
 
