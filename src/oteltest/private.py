@@ -98,9 +98,9 @@ def setup_script_environment(
 
     try:
         oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
-        logger.info("PASSED: %s", script)
+        logger.info("✅️Success: %s", script)
     except AssertionError as ae:
-        logger.info("AssertionError: %s %s", script, ae)
+        logger.info("❌️AssertionError: %s %s", script, ae)
     sink.stop()
 
 
