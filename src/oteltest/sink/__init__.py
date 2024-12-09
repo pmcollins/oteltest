@@ -95,6 +95,7 @@ class GrpcSink:
 class HttpSink:
 
     def __init__(self, listener, logger: logging.Logger, port=4318, daemon=True):
+        self.httpd = None
         self.listener = listener
         self.logger = logger
         self.port = port
@@ -133,8 +134,8 @@ class HttpSink:
                 this.wfile.write("OK".encode("utf-8"))
 
         # noinspection PyTypeChecker
-        httpd = HTTPServer(("", self.port), Handler)
-        httpd.serve_forever()
+        self.httpd = HTTPServer(("", self.port), Handler)
+        self.httpd.serve_forever()
 
     def handle_trace(self, post_data, headers):
         req = ExportTraceServiceRequest()
@@ -152,6 +153,7 @@ class HttpSink:
         self.listener.handle_logs(req, headers)
 
     def stop(self):
+        self.httpd.shutdown()
         self.svr_thread.join()
 
 
