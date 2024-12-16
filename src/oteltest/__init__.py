@@ -36,6 +36,12 @@ class OtelTest(abc.ABC):
         """
 
     @abc.abstractmethod
+    def is_http(self) -> bool:
+        """
+        Defaults to false which gives you grpc.
+        """
+
+    @abc.abstractmethod
     def on_start(self) -> Optional[float]:
         """
         Called immediately after the script has started.
@@ -56,10 +62,4 @@ class OtelTest(abc.ABC):
         """
         Called immediately after the script has ended. Passed in are both the telemetry otelsink received while the
         script was running and the output of the script (stdout, stderr, returncode).
-        """
-
-    @abc.abstractmethod
-    def is_http(self) -> bool:
-        """
-        Defaults to false which gives you grpc.
         """
