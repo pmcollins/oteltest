@@ -1,7 +1,6 @@
 import time
 from typing import Mapping, Optional, Sequence
 
-from oteltest import OtelTest
 
 PORT = 8002
 HOST = "127.0.0.1"
@@ -19,10 +18,7 @@ if __name__ == "__main__":
     app.run(port=PORT, host=HOST)
 
 
-# We formally inherit from OtelTest here, but we don't have to if we have OtelTest in the name of the class. The
-# advantage of formally inheriting is that your IDE can fill in the method stubs for you. The advantage of not
-# formally inheriting is that you don't have to rely on the oteltest dependency.
-class FlaskOtelTest(OtelTest):
+class FlaskOtelTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {}
 
@@ -54,8 +50,9 @@ class FlaskOtelTest(OtelTest):
         return 30
 
     def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
-        # you can do something with the telemetry here, e.g. make assertions etc.
-        print("done")
+        from oteltest.telemetry import count_spans
+
+        assert count_spans(telemetry)
 
     def is_http(self) -> bool:
         return False
