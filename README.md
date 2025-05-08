@@ -74,7 +74,10 @@ if __name__ == "__main__":
 # contains "OtelTest".
 class MyOtelTest:
     def requirements(self):
-        return "opentelemetry-distro", "opentelemetry-exporter-otlp-proto-grpc"
+        """
+        Return a sequence of requirements formatted for pip install.
+        """
+        return ["opentelemetry-distro", "opentelemetry-exporter-otlp-proto-grpc"]
 
     def environment_variables(self):
         return {"OTEL_SERVICE_NAME": SERVICE_NAME}
@@ -83,12 +86,19 @@ class MyOtelTest:
         return "opentelemetry-instrument"
 
     def on_start(self):
+        """
+        Return None to let the script run indefinitely, or a float indicating seconds to wait before terminating.
+        """
         return None
 
-    def on_stop(self, telemetry, stdout: str, stderr: str, returncode: int) -> None:
+    def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
         print(f"script completed with return code {returncode}")
 
     def is_http(self) -> bool:
+        """
+        Return True to use HTTP for telemetry collection (port 4318), False to use gRPC (port 4317).
+        Defaults to False (gRPC).
+        """
         return False
 ```
 
