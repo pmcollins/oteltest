@@ -70,8 +70,7 @@ if __name__ == "__main__":
             time.sleep(0.5)
 
 
-# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
-# contains "OtelTest".
+# The class name must contain 'OtelTest' to be recognized by the test runner if not inheriting from the base class
 class MyOtelTest:
     def requirements(self):
         """
@@ -125,8 +124,7 @@ if __name__ == "__main__":
     app.run(port=PORT, host=HOST)
 
 
-# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
-# contains "OtelTest".
+# The class name must contain 'OtelTest' to be recognized by the test runner if not inheriting from the base class
 class FlaskOtelTest:
     def environment_variables(self) -> Mapping[str, str]:
         return {}
