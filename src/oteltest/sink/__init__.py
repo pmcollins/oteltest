@@ -170,5 +170,5 @@ def run_http(logger):
     logger.info("Starting http server")
 
     raise_if_port_in_use(4318)
-    sink = HttpSink(PrintHandler(), daemon=False)
+    sink = HttpSink(PrintHandler(), logger, daemon=False)
     sink.start()
