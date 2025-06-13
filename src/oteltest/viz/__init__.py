@@ -22,24 +22,43 @@ class TraceApp:
     def view_trace(self, filename):
         file_path = self.trace_dir / filename
         data = self._load_trace_file(str(file_path))
-        spans = self._find_spans(data)
-        # Group spans by traceId
-        spans_by_trace = {}
-        for span in spans:
-            trace_id = span.get('traceId', 'NO_TRACE_ID')
-            spans_by_trace.setdefault(trace_id, []).append(span)
-        # Build span trees for each traceId
-        span_trees_by_trace = {}
-        for trace_id, group in spans_by_trace.items():
-            span_trees_by_trace[trace_id] = self._build_span_tree(group)
-        # Compute min start and max end time for all spans
-        if spans:
-            min_start = min(int(span['startTimeUnixNano']) for span in spans)
-            max_end = max(int(span['endTimeUnixNano']) for span in spans)
-        else:
+        resource_groups = []
+        min_start = None
+        max_end = None
+        # Build resource groups
+        for request in data.get('trace_requests', []):
+            if 'pbreq' in request:
+                for resource_span in request['pbreq'].get('resourceSpans', []):
+                    resource_attrs = resource_span.get('resource', {}).get('attributes', [])
+                    # Collect all spans for this resource
+                    all_spans = []
+                    for scope_span in resource_span.get('scopeSpans', []):
+                        all_spans.extend(scope_span.get('spans', []))
+                    # Group spans by traceId
+                    spans_by_trace = {}
+                    for span in all_spans:
+                        trace_id = span.get('traceId', 'NO_TRACE_ID')
+                        spans_by_trace.setdefault(trace_id, []).append(span)
+                        # Track min/max times
+                        s = int(span['startTimeUnixNano'])
+                        e = int(span['endTimeUnixNano'])
+                        if min_start is None or s < min_start:
+                            min_start = s
+                        if max_end is None or e > max_end:
+                            max_end = e
+                    # Build span trees for each traceId
+                    span_trees_by_trace = {}
+                    for trace_id, group in spans_by_trace.items():
+                        span_trees_by_trace[trace_id] = self._build_span_tree(group)
+                    resource_groups.append({
+                        'attrs': resource_attrs,
+                        'span_trees_by_trace': span_trees_by_trace
+                    })
+        if min_start is None:
             min_start = 0
+        if max_end is None:
             max_end = 0
-        return render_template('trace.html', filename=filename, span_trees_by_trace=span_trees_by_trace, min_start=min_start, max_end=max_end)
+        return render_template('trace.html', filename=filename, resource_groups=resource_groups, min_start=min_start, max_end=max_end)
 
     def _get_trace_files(self):
         return [f.name for f in self.trace_dir.glob('*.json')]

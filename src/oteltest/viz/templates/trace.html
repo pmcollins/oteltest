@@ -73,50 +73,60 @@
 <h1>Trace: {{ filename }}</h1>
 
 <div class="trace">
-    <table style="border-spacing:0;">
-        <thead>
-            <tr>
-                <th style="text-align:left;">Span</th>
-                <th style="text-align:left;">Timeline</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% macro render_span(span) %}
-            <tr>
-                <td class="span-tree" style="width:400px; overflow-x:auto; white-space:nowrap;">
-                    {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
-                    {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
-                </td>
-                <td class="span-bar-container">
-                    <span class="span-bar"
-                          style="margin-left:{{ ((span.startTimeUnixNano|int - min_start) / (max_end - min_start + 1e-9)) * 200 }}px;width:{{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / (max_end - min_start + 1e-9)) * 200 }}px;"></span>
-                    <span class="duration">
-                        ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
-                    </span>
-                </td>
-            </tr>
-            {% if span.children %}
-                {% for child in span.children %}
-                    {{ render_span(child) }}
-                {% endfor %}
-            {% endif %}
-        {% endmacro %}
-        {% if span_trees_by_trace is defined %}
-            {% for trace_id, root_spans in span_trees_by_trace.items() %}
-                <tr><td colspan="2" style="padding-top:24px;"><hr style="border:1px dashed #aaa;"><div style="font-style:italic;color:#888;">Trace</div></td></tr>
-                {% for span in root_spans %}
-                    {{ render_span(span) }}
-                {% endfor %}
-            {% endfor %}
-        {% elif spans is defined %}
-            {% for span in spans %}
-                {{ render_span(span) }}
-            {% endfor %}
-        {% else %}
-            <tr><td colspan="2"><i>No span data available.</i></td></tr>
-        {% endif %}
-        </tbody>
-    </table>
+    {% if resource_groups is defined and resource_groups|length > 0 %}
+        {% for resource in resource_groups %}
+            <div style="margin-bottom:32px;">
+                <div style="padding:8px 12px;border-radius:6px 6px 0 0;border:1px solid #ddd;border-bottom:none;">
+                    <b>Resource:</b>
+                    {% if resource.attrs and resource.attrs|length > 0 %}
+                        <ul style="margin:4px 0 0 16px;">
+                        {% for attr in resource.attrs %}
+                            <li><b>{{ attr.key }}</b>: {{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span style="color:#888;">(none)</span>
+                    {% endif %}
+                </div>
+                <table style="border-spacing:0;border:1px solid #ddd;border-top:none;">
+                    <tbody>
+                    {% macro render_span(span) %}
+                        <tr>
+                            <td class="span-tree" style="width:400px; overflow-x:auto; white-space:nowrap;">
+                                {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
+                                {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
+                            </td>
+                            <td class="span-bar-container">
+                                <span class="span-bar"
+                                      style="margin-left:{{ ((span.startTimeUnixNano|int - min_start) / (max_end - min_start + 1e-9)) * 200 }}px;width:{{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / (max_end - min_start + 1e-9)) * 200 }}px;"></span>
+                                <span class="duration">
+                                    ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
+                                </span>
+                            </td>
+                        </tr>
+                        {% if span.children %}
+                            {% for child in span.children %}
+                                {{ render_span(child) }}
+                            {% endfor %}
+                        {% endif %}
+                    {% endmacro %}
+                    {% if resource.span_trees_by_trace is defined %}
+                        {% for trace_id, root_spans in resource.span_trees_by_trace.items() %}
+                            <tr><td colspan="2" style="padding-top:24px;"><hr style="border:1px dashed #aaa;"><div style="font-style:italic;color:#888;">Trace</div></td></tr>
+                            {% for span in root_spans %}
+                                {{ render_span(span) }}
+                            {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <tr><td colspan="2"><i>No span data available.</i></td></tr>
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        {% endfor %}
+    {% else %}
+        <tr><td colspan="2"><i>No span data available.</i></td></tr>
+    {% endif %}
 </div>
 </body>
 </html>
