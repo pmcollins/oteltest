@@ -37,6 +37,7 @@ Source = "https://github.com/pmcollins/oteltest/blob/main/oteltest"
 [project.scripts]
 oteltest = "oteltest.main:main"
 otelsink = "oteltest.sink.main:main"
+otelviz = "oteltest.viz.main:main"
 
 [tool.hatch.version]
 path = "src/oteltest/version.py"

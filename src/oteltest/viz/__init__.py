@@ -57,11 +57,3 @@ class TraceApp:
 
     def run(self, **kwargs):
         self.app.run(**kwargs)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="List trace JSON files in a directory.")
-    parser.add_argument("trace_dir", type=str, help="Directory containing trace JSON files.")
-    args = parser.parse_args()
-    trace_app = TraceApp(args.trace_dir)
-    trace_app.run(debug=True, port=5000)
