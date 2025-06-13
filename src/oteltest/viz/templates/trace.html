@@ -83,7 +83,7 @@
         <tbody>
         {% macro render_span(span) %}
             <tr>
-                <td class="span-tree">
+                <td class="span-tree" style="width:400px; overflow-x:auto; white-space:nowrap;">
                     {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
                     {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
                 </td>
