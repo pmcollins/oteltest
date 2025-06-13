@@ -20,6 +20,7 @@
             color: blue;
             text-decoration: none;
         }
+
         a:hover {
             text-decoration: underline;
         }
@@ -29,14 +30,10 @@
         }
 
         .span-tree {
-            flex: 0 0 auto;
             min-width: 120px;
             white-space: pre;
-        }
-
-        .span-bar-container {
-            flex: 0 0 auto;
-            margin-left: 16px;
+            width: 400px;
+            overflow-x: auto;
         }
 
         .span-bar {
@@ -54,14 +51,48 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid #ddd;
+            border-top: none;
         }
-        th {
-            text-align: left;
-            padding: 0 2px;
-        }
-        td {
+
+        th, td {
             padding: 0 2px;
             vertical-align: top;
+            line-height: 1;
+        }
+
+        .resource-attrs {
+            padding: 4px;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 0;
+        }
+
+        .resource-attrs ul {
+            margin: 4px 0 0 16px;
+        }
+
+        .resource-attrs span {
+            color: #888;
+        }
+
+        .trace-separator {
+            padding-top: 12px;
+        }
+
+        .trace-separator hr {
+            border: 1px dashed #aaa;
+            margin: 0 0 2px 0;
+        }
+
+        .trace-separator div {
+            font-style: italic;
+            color: #888;
+        }
+
+        .resource-block {
+            margin-bottom: 32px;
+            padding: 16px 0 0 0;
         }
     </style>
 </head>
@@ -74,59 +105,66 @@
 
 <div class="trace">
     {% if resource_groups is defined and resource_groups|length > 0 %}
-        {% for resource in resource_groups %}
-            <div style="margin-bottom:32px;">
-                <div style="padding:8px 12px;border-radius:6px 6px 0 0;border:1px solid #ddd;border-bottom:none;">
-                    <b>Resource:</b>
-                    {% if resource.attrs and resource.attrs|length > 0 %}
-                        <ul style="margin:4px 0 0 16px;">
-                        {% for attr in resource.attrs %}
-                            <li><b>{{ attr.key }}</b>: {{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</li>
-                        {% endfor %}
-                        </ul>
-                    {% else %}
-                        <span style="color:#888;">(none)</span>
-                    {% endif %}
-                </div>
-                <table style="border-spacing:0;border:1px solid #ddd;border-top:none;">
-                    <tbody>
-                    {% macro render_span(span) %}
-                        <tr>
-                            <td class="span-tree" style="width:400px; overflow-x:auto; white-space:nowrap;">
-                                {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
-                                {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
-                            </td>
-                            <td class="span-bar-container">
+    {% for resource in resource_groups %}
+    <div class="resource-block">
+        <div class="resource-attrs">
+            <b>Resource Attributes:</b>
+            {% if resource.attrs and resource.attrs|length > 0 %}
+            <ul>
+                {% for attr in resource.attrs %}
+                <li><b>{{ attr.key }}</b>: {{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or
+                    attr.value.doubleValue or attr.value or '' }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <span>(none)</span>
+            {% endif %}
+        </div>
+        <table>
+            <tbody>
+            {% macro render_span(span) %}
+            <tr>
+                <td class="span-tree">
+                    {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
+                    {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
+                </td>
+                <td class="span-bar-container">
                                 <span class="span-bar"
                                       style="margin-left:{{ ((span.startTimeUnixNano|int - min_start) / (max_end - min_start + 1e-9)) * 200 }}px;width:{{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / (max_end - min_start + 1e-9)) * 200 }}px;"></span>
-                                <span class="duration">
+                    <span class="duration">
                                     ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
                                 </span>
-                            </td>
-                        </tr>
-                        {% if span.children %}
-                            {% for child in span.children %}
-                                {{ render_span(child) }}
-                            {% endfor %}
-                        {% endif %}
-                    {% endmacro %}
-                    {% if resource.span_trees_by_trace is defined %}
-                        {% for trace_id, root_spans in resource.span_trees_by_trace.items() %}
-                            <tr><td colspan="2" style="padding-top:24px;"><hr style="border:1px dashed #aaa;"><div style="font-style:italic;color:#888;">Trace</div></td></tr>
-                            {% for span in root_spans %}
-                                {{ render_span(span) }}
-                            {% endfor %}
-                        {% endfor %}
-                    {% else %}
-                        <tr><td colspan="2"><i>No span data available.</i></td></tr>
-                    {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        {% endfor %}
+                </td>
+            </tr>
+            {% if span.children %}
+            {% for child in span.children %}
+            {{ render_span(child) }}
+            {% endfor %}
+            {% endif %}
+            {% endmacro %}
+            {% if resource.span_trees_by_trace is defined %}
+                {% for trace_id, root_spans in resource.span_trees_by_trace.items() %}
+                    <tr class="trace-separator"><td colspan="2"><hr><div>Trace</div></td></tr>
+                    {% for span in root_spans %}
+                        {{ render_span(span) }}
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="2"><i>No span data available.</i></td>
+            </tr>
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
     {% else %}
-        <tr><td colspan="2"><i>No span data available.</i></td></tr>
+    <tr>
+        <td colspan="2"><i>No span data available.</i></td>
+    </tr>
     {% endif %}
 </div>
 </body>
 </html>
+

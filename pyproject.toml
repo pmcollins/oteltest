@@ -27,6 +27,7 @@ dependencies = [
     "opentelemetry-api",
     "grpcio",
     "protobuf",
+    "flask",
 ]
 
 [project.urls]
