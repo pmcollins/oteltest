@@ -23,7 +23,15 @@ class TraceApp:
         file_path = self.trace_dir / filename
         data = self._load_trace_file(str(file_path))
         spans = self._find_spans(data)
-        root_spans = self._build_span_tree(spans)
+        # Group spans by traceId
+        spans_by_trace = {}
+        for span in spans:
+            trace_id = span.get('traceId', 'NO_TRACE_ID')
+            spans_by_trace.setdefault(trace_id, []).append(span)
+        # Build span trees for each traceId
+        span_trees_by_trace = {}
+        for trace_id, group in spans_by_trace.items():
+            span_trees_by_trace[trace_id] = self._build_span_tree(group)
         # Compute min start and max end time for all spans
         if spans:
             min_start = min(int(span['startTimeUnixNano']) for span in spans)
@@ -31,7 +39,7 @@ class TraceApp:
         else:
             min_start = 0
             max_end = 0
-        return render_template('trace.html', filename=filename, spans=root_spans, min_start=min_start, max_end=max_end)
+        return render_template('trace.html', filename=filename, span_trees_by_trace=span_trees_by_trace, min_start=min_start, max_end=max_end)
 
     def _get_trace_files(self):
         return [f.name for f in self.trace_dir.glob('*.json')]

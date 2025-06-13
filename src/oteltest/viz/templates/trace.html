@@ -12,19 +12,6 @@
             color: #333;
         }
 
-        .trace {
-            margin-top: 20px;
-        }
-
-        .span {
-            margin: 5px 0;
-            position: relative;
-        }
-
-        .duration {
-            color: #666;
-        }
-
         .back {
             margin-bottom: 20px;
         }
@@ -33,9 +20,23 @@
             color: blue;
             text-decoration: none;
         }
-
         a:hover {
             text-decoration: underline;
+        }
+
+        .trace {
+            margin-top: 20px;
+        }
+
+        .span-tree {
+            flex: 0 0 auto;
+            min-width: 120px;
+            white-space: pre;
+        }
+
+        .span-bar-container {
+            flex: 0 0 auto;
+            margin-left: 16px;
         }
 
         .span-bar {
@@ -46,37 +47,18 @@
             vertical-align: middle;
         }
 
-        .span-row {
-            display: flex;
-            align-items: center;
-        }
-
-        .span-tree {
-            flex: 0 0 auto;
-            min-width: 120px;
-            white-space: pre;
-            padding-left: 0;
-            margin-left: 0;
-            width: auto;
-            display: block;
-        }
-
-        .span-bar-container {
-            flex: 0 0 auto;
-            margin-left: 16px;
-            min-width: 0;
+        .duration {
+            color: #666;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
         }
-
         th {
             text-align: left;
             padding: 0 2px;
         }
-
         td {
             padding: 0 2px;
             vertical-align: top;
@@ -119,9 +101,20 @@
                 {% endfor %}
             {% endif %}
         {% endmacro %}
-        {% for span in spans %}
-            {{ render_span(span) }}
-        {% endfor %}
+        {% if span_trees_by_trace is defined %}
+            {% for trace_id, root_spans in span_trees_by_trace.items() %}
+                <tr><td colspan="2" style="padding-top:24px;"><hr style="border:1px dashed #aaa;"><div style="font-style:italic;color:#888;">Trace</div></td></tr>
+                {% for span in root_spans %}
+                    {{ render_span(span) }}
+                {% endfor %}
+            {% endfor %}
+        {% elif spans is defined %}
+            {% for span in spans %}
+                {{ render_span(span) }}
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="2"><i>No span data available.</i></td></tr>
+        {% endif %}
         </tbody>
     </table>
 </div>
