@@ -17,9 +17,9 @@
     <div class="back">
         <a href="/">← Back to file list</a>
     </div>
-    
+
     <h1>Trace: {{ filename }}</h1>
-    
+
     <div class="trace">
         {% for span in spans %}
             <div class="span">
@@ -29,15 +29,15 @@
                 </span>
                 {% if span.children %}
                     {% for child in span.children %}
-                        <div class="span" style="margin-left: 20px;">
-                            <strong>{{ child.name }}</strong>
+                        <div class="span">
+                            <strong>&nbsp;&nbsp;└─ {{ child.name }}</strong>
                             <span class="duration">
                                 ({{ ((child.endTimeUnixNano|int - child.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
                             </span>
                             {% if child.children %}
                                 {% for grandchild in child.children %}
-                                    <div class="span" style="margin-left: 40px;">
-                                        <strong>{{ grandchild.name }}</strong>
+                                    <div class="span">
+                                        <strong>&nbsp;&nbsp;&nbsp;&nbsp;└─ {{ grandchild.name }}</strong>
                                         <span class="duration">
                                             ({{ ((grandchild.endTimeUnixNano|int - grandchild.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
                                         </span>
@@ -51,4 +51,4 @@
         {% endfor %}
     </div>
 </body>
-</html> 
+</html>

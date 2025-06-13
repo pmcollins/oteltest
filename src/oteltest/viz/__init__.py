@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 from typing import Dict, List
+
 from flask import Flask, render_template
-import argparse
 
 
 class TraceApp:
