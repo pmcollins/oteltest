@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trace: {{ filename }}</title>
+    <style>
+        body { font-family: monospace; margin: 40px; }
+        h1 { color: #333; }
+        .trace { margin-top: 20px; }
+        .span { margin: 5px 0; }
+        .duration { color: #666; }
+        .back { margin-bottom: 20px; }
+        a { color: blue; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="back">
+        <a href="/">← Back to file list</a>
+    </div>
+    
+    <h1>Trace: {{ filename }}</h1>
+    
+    <div class="trace">
+        {% for span in spans %}
+            <div class="span">
+                <strong>{{ span.name }}</strong>
+                <span class="duration">
+                    ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
+                </span>
+                {% if span.children %}
+                    {% for child in span.children %}
+                        <div class="span" style="margin-left: 20px;">
+                            <strong>{{ child.name }}</strong>
+                            <span class="duration">
+                                ({{ ((child.endTimeUnixNano|int - child.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
+                            </span>
+                            {% if child.children %}
+                                {% for grandchild in child.children %}
+                                    <div class="span" style="margin-left: 40px;">
+                                        <strong>{{ grandchild.name }}</strong>
+                                        <span class="duration">
+                                            ({{ ((grandchild.endTimeUnixNano|int - grandchild.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
+                                        </span>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</body>
+</html> 

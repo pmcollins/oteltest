@@ -1,13 +1,15 @@
-from lib import trace_loop
+from opentelemetry import trace
 
 SERVICE_NAME = "my-otel-test"
-NUM_ADDS = 12
 
 if __name__ == "__main__":
-    trace_loop(NUM_ADDS)
+    tracer = trace.get_tracer("my-tracer")
+    with tracer.start_as_current_span("aaa"):
+        with tracer.start_as_current_span("bbb"):
+            with tracer.start_as_current_span("ccc"):
+                print('hola mundo')
 
-# Since we're not inheriting from the OtelTest base class (to avoid depending on it) we make sure our class name
-# contains "OtelTest".
+
 class MyOtelTest:
     def requirements(self):
         return "opentelemetry-distro", "opentelemetry-exporter-otlp-proto-http"
