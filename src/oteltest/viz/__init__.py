@@ -12,11 +12,35 @@ class TraceApp:
         self.app.add_url_rule('/', 'index', self.index)
         self.app.add_url_rule('/trace/<path:filename>', 'view_trace', self.view_trace)
 
-    def load_trace_file(self, file_path: str) -> Dict:
+    def run(self, **kwargs):
+        self.app.run(**kwargs)
+
+    def index(self):
+        json_files = self._get_trace_files()
+        return render_template('index.html', files=json_files)
+
+    def view_trace(self, filename):
+        file_path = self.trace_dir / filename
+        data = self._load_trace_file(str(file_path))
+        spans = self._find_spans(data)
+        root_spans = self._build_span_tree(spans)
+        # Compute min start and max end time for all spans
+        if spans:
+            min_start = min(int(span['startTimeUnixNano']) for span in spans)
+            max_end = max(int(span['endTimeUnixNano']) for span in spans)
+        else:
+            min_start = 0
+            max_end = 0
+        return render_template('trace.html', filename=filename, spans=root_spans, min_start=min_start, max_end=max_end)
+
+    def _get_trace_files(self):
+        return [f.name for f in self.trace_dir.glob('*.json')]
+
+    def _load_trace_file(self, file_path: str) -> Dict:
         with open(file_path, 'r') as f:
             return json.load(f)
 
-    def find_spans(self, data: Dict) -> List[Dict]:
+    def _find_spans(self, data: Dict) -> List[Dict]:
         spans = []
         for request in data.get('trace_requests', []):
             if 'pbreq' in request:
@@ -25,35 +49,26 @@ class TraceApp:
                         spans.extend(scope_span.get('spans', []))
         return spans
 
-    def build_span_tree(self, spans: List[Dict]) -> List[Dict]:
+    def _build_span_tree(self, spans: List[Dict]) -> List[Dict]:
         span_map = {span['spanId']: span for span in spans}
         root_spans = []
 
+        # Clear any previous children/depth to avoid side effects
         for span in spans:
-            if 'parentSpanId' not in span:
+            span.pop('children', None)
+            span.pop('depth', None)
+
+        def assign_depth(span, depth):
+            span['depth'] = depth
+            for child in [s for s in spans if s.get('parentSpanId') == span.get('spanId')]:
+                if 'children' not in span:
+                    span['children'] = []
+                span['children'].append(child)
+                assign_depth(child, depth + 1)
+
+        for span in spans:
+            if 'parentSpanId' not in span or not span['parentSpanId'] or span['parentSpanId'] not in span_map:
+                assign_depth(span, 0)
                 root_spans.append(span)
-            else:
-                parent = span_map.get(span['parentSpanId'])
-                if parent:
-                    if 'children' not in parent:
-                        parent['children'] = []
-                    parent['children'].append(span)
 
         return root_spans
-
-    def get_trace_files(self):
-        return [f.name for f in self.trace_dir.glob('*.json')]
-
-    def index(self):
-        json_files = self.get_trace_files()
-        return render_template('index.html', files=json_files)
-
-    def view_trace(self, filename):
-        file_path = self.trace_dir / filename
-        data = self.load_trace_file(str(file_path))
-        spans = self.find_spans(data)
-        root_spans = self.build_span_tree(spans)
-        return render_template('trace.html', filename=filename, spans=root_spans)
-
-    def run(self, **kwargs):
-        self.app.run(**kwargs)

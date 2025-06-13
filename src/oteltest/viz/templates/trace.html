@@ -3,52 +3,127 @@
 <head>
     <title>Trace: {{ filename }}</title>
     <style>
-        body { font-family: monospace; margin: 40px; }
-        h1 { color: #333; }
-        .trace { margin-top: 20px; }
-        .span { margin: 5px 0; }
-        .duration { color: #666; }
-        .back { margin-bottom: 20px; }
-        a { color: blue; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            font-family: monospace;
+            margin: 40px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .trace {
+            margin-top: 20px;
+        }
+
+        .span {
+            margin: 5px 0;
+            position: relative;
+        }
+
+        .duration {
+            color: #666;
+        }
+
+        .back {
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: blue;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .span-bar {
+            display: inline-block;
+            height: 8px;
+            background: #4a90e2;
+            border-radius: 3px;
+            vertical-align: middle;
+        }
+
+        .span-row {
+            display: flex;
+            align-items: center;
+        }
+
+        .span-tree {
+            flex: 0 0 auto;
+            min-width: 120px;
+            white-space: pre;
+            padding-left: 0;
+            margin-left: 0;
+            width: auto;
+            display: block;
+        }
+
+        .span-bar-container {
+            flex: 0 0 auto;
+            margin-left: 16px;
+            min-width: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0 2px;
+        }
+
+        td {
+            padding: 0 2px;
+            vertical-align: top;
+        }
     </style>
 </head>
 <body>
-    <div class="back">
-        <a href="/">← Back to file list</a>
-    </div>
+<div class="back">
+    <a href="/">← Back to file list</a>
+</div>
 
-    <h1>Trace: {{ filename }}</h1>
+<h1>Trace: {{ filename }}</h1>
 
-    <div class="trace">
+<div class="trace">
+    <table style="border-spacing:0;">
+        <thead>
+            <tr>
+                <th style="text-align:left;">Span</th>
+                <th style="text-align:left;">Timeline</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% macro render_span(span) %}
+            <tr>
+                <td class="span-tree">
+                    {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
+                    {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
+                </td>
+                <td class="span-bar-container">
+                    <span class="span-bar"
+                          style="margin-left:{{ ((span.startTimeUnixNano|int - min_start) / (max_end - min_start + 1e-9)) * 200 }}px;width:{{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / (max_end - min_start + 1e-9)) * 200 }}px;"></span>
+                    <span class="duration">
+                        ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
+                    </span>
+                </td>
+            </tr>
+            {% if span.children %}
+                {% for child in span.children %}
+                    {{ render_span(child) }}
+                {% endfor %}
+            {% endif %}
+        {% endmacro %}
         {% for span in spans %}
-            <div class="span">
-                <strong>{{ span.name }}</strong>
-                <span class="duration">
-                    ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
-                </span>
-                {% if span.children %}
-                    {% for child in span.children %}
-                        <div class="span">
-                            <strong>&nbsp;&nbsp;└─ {{ child.name }}</strong>
-                            <span class="duration">
-                                ({{ ((child.endTimeUnixNano|int - child.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
-                            </span>
-                            {% if child.children %}
-                                {% for grandchild in child.children %}
-                                    <div class="span">
-                                        <strong>&nbsp;&nbsp;&nbsp;&nbsp;└─ {{ grandchild.name }}</strong>
-                                        <span class="duration">
-                                            ({{ ((grandchild.endTimeUnixNano|int - grandchild.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
-                                        </span>
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
+            {{ render_span(span) }}
         {% endfor %}
-    </div>
+        </tbody>
+    </table>
+</div>
 </body>
 </html>
