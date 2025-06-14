@@ -48,51 +48,32 @@
             color: #666;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 1px solid #ddd;
-            border-top: none;
-        }
-
-        th, td {
-            padding: 0 2px;
-            vertical-align: top;
-            line-height: 1;
-        }
-
-        .resource-attrs {
-            padding: 4px;
-            border: 1px solid #ddd;
-            border-bottom: none;
-            border-radius: 0;
-        }
-
-        .resource-attrs ul {
-            margin: 4px 0 0 16px;
-        }
-
-        .resource-attrs span {
-            color: #888;
-        }
-
-        .trace-separator {
-            padding-top: 12px;
-        }
-
-        .trace-separator hr {
-            border: 1px dashed #aaa;
-            margin: 0 0 2px 0;
-        }
-
-        .trace-separator div {
-            font-style: italic;
-            color: #888;
-        }
-
         .resource-block {
             margin-bottom: 32px;
             padding: 16px 0 0 0;
+        }
+
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        legend {
+            font-weight: bold;
+            padding: 0 10px;
+        }
+
+        .span-tree-row {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+        }
+
+        .span-bar-container {
+            flex-grow: 1;
+            position: relative;
         }
     </style>
 </head>
@@ -107,8 +88,8 @@
     {% if resource_groups is defined and resource_groups|length > 0 %}
     {% for resource in resource_groups %}
     <div class="resource-block">
-        <div class="resource-attrs">
-            <b>Resource Attributes:</b>
+        <fieldset style="margin-bottom: 16px;">
+            <legend>Resource</legend>
             {% if resource.attrs and resource.attrs|length > 0 %}
             <ul>
                 {% for attr in resource.attrs %}
@@ -120,43 +101,37 @@
             {% else %}
             <span>(none)</span>
             {% endif %}
-        </div>
-        <table>
-            <tbody>
-            {% macro render_span(span) %}
-            <tr>
-                <td class="span-tree">
-                    {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
-                    {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
-                </td>
-                <td class="span-bar-container">
-                                <span class="span-bar"
-                                      style="margin-left:{{ ((span.startTimeUnixNano|int - min_start) / (max_end - min_start + 1e-9)) * 200 }}px;width:{{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / (max_end - min_start + 1e-9)) * 200 }}px;"></span>
-                    <span class="duration">
-                                    ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
-                                </span>
-                </td>
-            </tr>
-            {% if span.children %}
-            {% for child in span.children %}
-            {{ render_span(child) }}
-            {% endfor %}
-            {% endif %}
-            {% endmacro %}
-            {% if resource.span_trees_by_trace is defined %}
-                {% for trace_id, root_spans in resource.span_trees_by_trace.items() %}
-                    <tr class="trace-separator"><td colspan="2"><hr><div>Trace</div></td></tr>
-                    {% for span in root_spans %}
-                        {{ render_span(span) }}
-                    {% endfor %}
+        </fieldset>
+        {% if resource.span_trees_by_trace is defined %}
+            {% for trace_id, root_spans in resource.span_trees_by_trace.items() %}
+            <fieldset style="margin-bottom: 24px;">
+                <legend>Trace</legend>
+                {% macro render_span(span) %}
+                <div class="span-tree-row">
+                    <span class="span-tree">
+                        {%- for i in range(span.depth - 1) %}&nbsp;&nbsp;{%- endfor -%}
+                        {%- if span.depth > 0 %}└─ {%- endif -%}{{ span.name }}
+                    </span>
+                    <span class="span-bar-container">
+                        <span class="span-bar"
+                              style="margin-left:{{ ((span.startTimeUnixNano|int - min_start) / (max_end - min_start + 1e-9)) * 200 }}px;width:{{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / (max_end - min_start + 1e-9)) * 200 }}px;"></span>
+                        <span class="duration">
+                            ({{ ((span.endTimeUnixNano|int - span.startTimeUnixNano|int) / 1000000)|round(2) }} ms)
+                        </span>
+                    </span>
+                </div>
+                {% if span.children %}
+                {% for child in span.children %}
+                {{ render_span(child) }}
                 {% endfor %}
-            {% else %}
-            <tr>
-                <td colspan="2"><i>No span data available.</i></td>
-            </tr>
-            {% endif %}
-            </tbody>
-        </table>
+                {% endif %}
+                {% endmacro %}
+                {% for span in root_spans %}
+                    {{ render_span(span) }}
+                {% endfor %}
+            </fieldset>
+            {% endfor %}
+        {% endif %}
     </div>
     {% endfor %}
     {% else %}
@@ -167,4 +142,3 @@
 </div>
 </body>
 </html>
-
