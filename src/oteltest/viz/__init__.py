@@ -1,8 +1,51 @@
 import json
+import copy
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple, Any
 
 from flask import Flask, render_template
+
+
+def normalize_telemetry(telemetry: Dict[str, Any]) -> Dict[str, List]:
+    trace_requests = telemetry.get('trace_requests', [])
+    traces = normalize_traces(trace_requests)
+    return {'traces': traces}
+
+
+def normalize_traces(trace_requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    merged = {}
+    for request in trace_requests:
+        pbreq = request.get('pbreq', {})
+        for resource_span in pbreq.get('resourceSpans', []):
+            resource = resource_span.get('resource', {})
+            key = resource_key(resource)
+
+            if key not in merged:
+                merged[key] = copy.deepcopy(resource_span)
+            else:
+                existing = merged[key]
+                scope_map = {}
+                for scope_spans in existing.get('scopeSpans', []):
+                    scope = scope_spans['scope']
+                    scope_name = scope.get('name', '')
+                    scope_version = scope.get('version')
+                    scope_map[(scope_name, scope_version)] = scope_spans
+                for scope_span in resource_span.get('scopeSpans', []):
+                    scope = scope_span['scope']
+                    scope_name = scope.get('name', '')
+                    scope_version = scope.get('version')
+                    scope_id = (scope_name, scope_version)
+                    if scope_id in scope_map:
+                        scope_map[scope_id].setdefault('spans', []).extend(scope_span.get('spans', []))
+                    else:
+                        existing.setdefault('scopeSpans', []).append(scope_span)
+    return list(merged.values())
+
+
+def resource_key(resource: Dict[str, Any]) -> Tuple:
+    attrs = resource.get('attributes', [])
+    return tuple(
+        sorted((a['key'], json.dumps(a['value'], sort_keys=True)) for a in attrs if 'key' in a and 'value' in a))
 
 
 class TraceApp:
@@ -25,40 +68,40 @@ class TraceApp:
         resource_groups = []
         min_start = None
         max_end = None
-        # Build resource groups
-        for request in data.get('trace_requests', []):
-            if 'pbreq' in request:
-                for resource_span in request['pbreq'].get('resourceSpans', []):
-                    resource_attrs = resource_span.get('resource', {}).get('attributes', [])
-                    # Collect all spans for this resource
-                    all_spans = []
-                    for scope_span in resource_span.get('scopeSpans', []):
-                        all_spans.extend(scope_span.get('spans', []))
-                    # Group spans by traceId
-                    spans_by_trace = {}
-                    for span in all_spans:
-                        trace_id = span.get('traceId', 'NO_TRACE_ID')
-                        spans_by_trace.setdefault(trace_id, []).append(span)
-                        # Track min/max times
-                        s = int(span['startTimeUnixNano'])
-                        e = int(span['endTimeUnixNano'])
-                        if min_start is None or s < min_start:
-                            min_start = s
-                        if max_end is None or e > max_end:
-                            max_end = e
-                    # Build span trees for each traceId
-                    span_trees_by_trace = {}
-                    for trace_id, group in spans_by_trace.items():
-                        span_trees_by_trace[trace_id] = self._build_span_tree(group)
-                    resource_groups.append({
-                        'attrs': resource_attrs,
-                        'span_trees_by_trace': span_trees_by_trace
-                    })
+        # Use the merged telemetry structure
+        merged = normalize_telemetry(data)
+        for resource_span in merged['traces']:
+            resource_attrs = resource_span.get('resource', {}).get('attributes', [])
+            # Collect all spans for this resource
+            all_spans = []
+            for scope_span in resource_span.get('scopeSpans', []):
+                all_spans.extend(scope_span.get('spans', []))
+            # Group spans by traceId
+            spans_by_trace = {}
+            for span in all_spans:
+                trace_id = span.get('traceId', 'NO_TRACE_ID')
+                spans_by_trace.setdefault(trace_id, []).append(span)
+                # Track min/max times
+                s = int(span['startTimeUnixNano'])
+                e = int(span['endTimeUnixNano'])
+                if min_start is None or s < min_start:
+                    min_start = s
+                if max_end is None or e > max_end:
+                    max_end = e
+            # Build span trees for each traceId
+            span_trees_by_trace = {}
+            for trace_id, group in spans_by_trace.items():
+                span_trees_by_trace[trace_id] = self._build_span_tree(group)
+            resource_groups.append({
+                'attrs': resource_attrs,
+                'span_trees_by_trace': span_trees_by_trace
+            })
         if min_start is None:
             min_start = 0
         if max_end is None:
             max_end = 0
-        return render_template('trace.html', filename=filename, resource_groups=resource_groups, min_start=min_start, max_end=max_end)
+        return render_template('trace.html', filename=filename, resource_groups=resource_groups, min_start=min_start,
+                               max_end=max_end)
 
     def _get_trace_files(self):
         return [f.name for f in self.trace_dir.glob('*.json')]
