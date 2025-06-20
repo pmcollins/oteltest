@@ -34,6 +34,10 @@
             white-space: pre;
             width: 400px;
             overflow-x: auto;
+            height: 24px;
+            line-height: 24px;
+            vertical-align: middle;
+            display: inline-block;
         }
 
         .span-bar {
@@ -46,6 +50,9 @@
 
         .duration {
             color: #666;
+            vertical-align: middle;
+            display: inline-block;
+            margin-left: 5px;
         }
 
         .resource-block {
@@ -66,13 +73,15 @@
         }
 
         .span-tree-row {
-            display: flex;
-            align-items: center;
-            margin: 4px 0;
+            display: block; /* Change to block */
+            padding: 2px 0; /* Add some padding */
+            line-height: 24px; /* Consistent line height */
+            height: 24px; /* Fixed height */
         }
 
         .span-bar-container {
-            flex-grow: 1;
+            display: inline-block; /* Change to inline-block */
+            vertical-align: middle; /* Ensure vertical centering */
             position: relative;
         }
     </style>
