@@ -1,5 +1,5 @@
-import json
 import copy
+import json
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
 
@@ -25,16 +25,21 @@ def normalize_traces(trace_requests: List[Dict[str, Any]]) -> List[Dict[str, Any
             else:
                 existing = merged[key]
                 scope_map = {}
+
+                # Helper function to extract scope identity
+                def get_scope_id(spans):
+                    scope = spans['scope']
+                    scope_name = scope.get('name', '')
+                    scope_version = scope.get('version')
+                    return scope_name, scope_version
+
+                # Build scope map from existing spans
                 for scope_spans in existing.get('scopeSpans', []):
-                    scope = scope_spans['scope']
-                    scope_name = scope.get('name', '')
-                    scope_version = scope.get('version')
-                    scope_map[(scope_name, scope_version)] = scope_spans
+                    scope_map[get_scope_id(scope_spans)] = scope_spans
+
+                # Process new scope spans
                 for scope_span in resource_span.get('scopeSpans', []):
-                    scope = scope_span['scope']
-                    scope_name = scope.get('name', '')
-                    scope_version = scope.get('version')
-                    scope_id = (scope_name, scope_version)
+                    scope_id = get_scope_id(scope_span)
                     if scope_id in scope_map:
                         scope_map[scope_id].setdefault('spans', []).extend(scope_span.get('spans', []))
                     else:
