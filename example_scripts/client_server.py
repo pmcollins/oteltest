@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import time
 from typing import Mapping, Optional, Sequence
-
 
 PORT = 8002
 HOST = "127.0.0.1"
@@ -36,7 +37,7 @@ class FlaskOtelTest:
     def on_start(self) -> Optional[float]:
         import http.client
 
-        # Todo: replace this sleep with a liveness check!
+        # TODO: replace this sleep with a liveness check!
         time.sleep(10)
 
         conn = http.client.HTTPConnection(HOST, PORT)

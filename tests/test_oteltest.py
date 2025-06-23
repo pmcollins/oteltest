@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -9,25 +11,25 @@ from opentelemetry.proto.logs.v1.logs_pb2 import LogRecord
 from opentelemetry.proto.metrics.v1.metrics_pb2 import Metric
 from opentelemetry.proto.trace.v1.trace_pb2 import Span
 
-from oteltest import OtelTest, telemetry, Telemetry
+from oteltest import OtelTest, telemetry
 from oteltest.private import (
+    Venv,
     get_next_json_file,
     is_test_class,
     load_oteltest_class_for_script,
     run_python_script,
     save_telemetry_json,
-    Venv,
 )
 from oteltest.telemetry import (
+    Telemetry,
     count_logs,
     extract_leaves,
+    get_attribute,
     get_logs,
-    get_attribute, get_logs,
     get_metrics,
     get_spans,
     has_log_attribute,
 )
-
 
 # fixtures
 
@@ -65,17 +67,17 @@ def test_get_next_json_file(tmp_path):
     path_to_dir = str(tmp_path)
 
     next_file = get_next_json_file(path_to_dir, module_name)
-    assert "my_module_name.0.json" == next_file
+    assert next_file == "my_module_name.0.json"
 
     save_telemetry_json(path_to_dir, next_file, "")
 
     next_file = get_next_json_file(path_to_dir, module_name)
-    assert "my_module_name.1.json" == next_file
+    assert next_file == "my_module_name.1.json"
 
     save_telemetry_json(path_to_dir, next_file, "[1]")
 
     next_file = get_next_json_file(path_to_dir, module_name)
-    assert "my_module_name.2.json" == next_file
+    assert next_file == "my_module_name.2.json"
 
 
 def test_is_test_class():
@@ -95,9 +97,7 @@ def test_is_test_class():
         def on_start(self) -> Optional[float]:
             pass
 
-        def on_stop(
-            self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-        ) -> None:
+        def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
             pass
 
         def is_http(self) -> bool:
@@ -146,10 +146,12 @@ def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
     span = telemetry.first_span(metrics_and_traces_telemetry_fixture)
     assert span.trace_id.hex() == "0adffbc2cb9f3cdb09f6801a788da973"
 
+
 def foreach_span(tel, f):
     spans = get_spans(tel)
     for span in spans:
         f(span)
+
 
 def all_spans_have_resource_attribute(tel: Telemetry, attrname):
     trace_reqs = tel.get_trace_requests()
@@ -159,6 +161,7 @@ def all_spans_have_resource_attribute(tel: Telemetry, attrname):
             if attr is None:
                 return False
     return True
+
 
 def test_all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture: Telemetry):
     assert all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture, "service.name")
@@ -170,13 +173,10 @@ def test_span_attribute_by_name(client_server_fixture: Telemetry):
     assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
 
 
-
-
 def test_run_python_script():
     env_store = {"aaa": "bbb"}
 
     class Tester:
-
         def __init__(self):
             self.python_script_cmd = None
             self.env = None
@@ -234,9 +234,7 @@ def test_has_log_attribute(logs_telemetry_fixture):
 
 def test_extract_leaves(metrics_and_traces_telemetry_fixture):
     tel = metrics_and_traces_telemetry_fixture
-    leaves = extract_leaves(
-        tel, "trace_requests", "pbreq", "resource_spans", "resource", "attributes"
-    )
+    leaves = extract_leaves(tel, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
     assert len(leaves) == 18
 
 
@@ -268,7 +266,6 @@ def telemetry_from_dict(d) -> telemetry.Telemetry:
 
 
 class FakeOtelTest:
-
     def __init__(self, env=None, reqs=None, wrapper=None):
         self.env = env or {}
         self.reqs = reqs or []
@@ -286,14 +283,11 @@ class FakeOtelTest:
     def on_start(self) -> Optional[float]:
         pass
 
-    def on_stop(
-        self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-    ) -> None:
+    def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         pass
 
 
 class FakeSubProcess:
-
     returncode = 0
 
     def communicate(self, timeout):

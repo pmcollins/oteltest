@@ -27,7 +27,6 @@ if __name__ == "__main__":
 
 
 class MyOtelTest:
-
     def environment_variables(self):
         return {}
 

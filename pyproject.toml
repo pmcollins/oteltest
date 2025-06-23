@@ -67,8 +67,8 @@ cov = [
     "cov-report",
 ]
 
-[[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+[tool.hatch.envs.all]
+matrix = [{ python = ["3.8", "3.9", "3.10", "3.11", "3.12"] }]
 
 [tool.hatch.envs.types]
 dependencies = [
@@ -97,3 +97,9 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
+[tool.ruff.lint]
+ignore = ["T201"]
+
+[tool.ruff.lint.per-file-ignores]
+"example_scripts/*.py" = ["ALL"]
+"tests/**/*.py" = ["ALL"]

@@ -4,18 +4,15 @@ import logging
 from oteltest.private import run
 from oteltest.version import __version__ as version
 
+
 def main():
     parser = argparse.ArgumentParser(description=f"Version {version}")
 
     d_help = "An optional override directory to hold per-script venv directories."
-    parser.add_argument(
-        "-d", "--venv-parent-dir", type=str, required=False, help=d_help
-    )
+    parser.add_argument("-d", "--venv-parent-dir", type=str, required=False, help=d_help)
 
     j_help = "An optional value to hold the directory into which json telemetry files are written"
-    parser.add_argument(
-        "-j", "--json-dir", type=str, required=False, help=j_help, default="json"
-    )
+    parser.add_argument("-j", "--json-dir", type=str, required=False, help=j_help, default="json")
 
     v_help = "Enable verbose output; include this flag for detailed logging."
     parser.add_argument("-v", "--verbose", action="store_true", help=v_help)
@@ -28,10 +25,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.verbose:
-        logging_level = logging.DEBUG
-    else:
-        logging_level = logging.INFO
+    logging_level = logging.DEBUG if args.verbose else logging.INFO
 
     logging.basicConfig(
         level=logging_level,

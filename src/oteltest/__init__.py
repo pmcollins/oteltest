@@ -1,7 +1,10 @@
-import abc
-from typing import Mapping, Optional, Sequence
+from __future__ import annotations
 
-from oteltest.telemetry import Telemetry
+import abc
+from typing import TYPE_CHECKING, Mapping, Sequence
+
+if TYPE_CHECKING:
+    from oteltest.telemetry import Telemetry
 
 
 class OtelTest(abc.ABC):
@@ -42,7 +45,7 @@ class OtelTest(abc.ABC):
         """
 
     @abc.abstractmethod
-    def on_start(self) -> Optional[float]:
+    def on_start(self) -> float | None:
         """
         Called immediately after the script has started.
 
@@ -56,9 +59,7 @@ class OtelTest(abc.ABC):
         """
 
     @abc.abstractmethod
-    def on_stop(
-        self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-    ) -> None:
+    def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         """
         Called immediately after the script has ended. Passed in are both the telemetry otelsink received while the
         script was running and the output of the script (stdout, stderr, returncode).
