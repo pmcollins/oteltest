@@ -3,18 +3,18 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from flask import Flask, render_template
 
 
-def normalize_telemetry(telemetry: Dict[str, Any]) -> Dict[str, List]:
+def normalize_telemetry(telemetry: dict[str, Any]) -> dict[str, list]:
     trace_requests = telemetry.get('trace_requests', [])
     traces = normalize_traces(trace_requests)
     return {'traces': traces}
 
 
-def normalize_traces(trace_requests: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def normalize_traces(trace_requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
     merged = {}
     for request in trace_requests:
         pbreq = request.get('pbreq', {})
@@ -49,7 +49,7 @@ def normalize_traces(trace_requests: List[Dict[str, Any]]) -> List[Dict[str, Any
     return list(merged.values())
 
 
-def resource_key(resource: Dict[str, Any]) -> Tuple:
+def resource_key(resource: dict[str, Any]) -> tuple():
     attrs = resource.get('attributes', [])
     return tuple(
         sorted((a['key'], json.dumps(a['value'], sort_keys=True)) for a in attrs if 'key' in a and 'value' in a))
@@ -113,11 +113,11 @@ class TraceApp:
     def _get_trace_files(self):
         return [f.name for f in self.trace_dir.glob('*.json')]
 
-    def _load_trace_file(self, file_path: str) -> Dict:
+    def _load_trace_file(self, file_path: str) -> dict:
         with open(file_path) as f:
             return json.load(f)
 
-    def _find_spans(self, data: Dict) -> List[Dict]:
+    def _find_spans(self, data: dict) -> list[dict]:
         spans = []
         for request in data.get('trace_requests', []):
             if 'pbreq' in request:
@@ -126,7 +126,7 @@ class TraceApp:
                         spans.extend(scope_span.get('spans', []))
         return spans
 
-    def _build_span_tree(self, spans: List[Dict]) -> List[Dict]:
+    def _build_span_tree(self, spans: list[dict]) -> list[dict]:
         span_map = {span['spanId']: span for span in spans}
         root_spans = []
 

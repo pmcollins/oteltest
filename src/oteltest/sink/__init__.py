@@ -37,14 +37,20 @@ def is_port_in_use(port):
         s.settimeout(1)
         try:
             s.bind(("127.0.0.1", port))
-            return False
         except OSError:
             return True
+        else:
+            return False
+
+
+class PortInUseError(Exception):
+    """Error raised when a required port is already in use."""
 
 
 def raise_if_port_in_use(port):
     if is_port_in_use(port):
-        raise Exception(f"port {port} is in use")
+        error_message = f"port {port} is in use"
+        raise PortInUseError(error_message)
 
 
 class GrpcSink:
@@ -74,7 +80,7 @@ class GrpcSink:
         self.port = port
         address = f"0.0.0.0:{port}"
         self.svr.add_insecure_port(address)
-        logger.info(f"grpc sink at address {address} ready to start")
+        logger.info("grpc sink at address %s ready to start", address)
 
     def start(self):
         """Starts the server. Does not block."""
@@ -106,7 +112,7 @@ class HttpSink:
         }
         self.svr_thread = threading.Thread(target=self.run_server)
         self.svr_thread.daemon = daemon
-        self.logger.info(f"Set up http sink on port {port}")
+        self.logger.info("Set up http sink on port %s", port)
 
     def start(self):
         self.svr_thread.start()
@@ -115,23 +121,23 @@ class HttpSink:
         class Handler(BaseHTTPRequestHandler):
 
             # noinspection PyPep8Naming
-            def do_POST(this):
+            def do_POST(self):
                 # /v1/traces
-                content_length = int(this.headers["Content-Length"])
-                post_data = this.rfile.read(content_length)
+                content_length = int(self.headers["Content-Length"])
+                post_data = self.rfile.read(content_length)
 
-                otlp_handler_func = self.handlers.get(this.path)
+                otlp_handler_func = self.handlers.get(self.path)
                 if otlp_handler_func:
                     # noinspection PyArgumentList
                     otlp_handler_func(
-                        post_data, {k: v for k, v in this.headers.items()}
+                        post_data, dict(self.headers.items())
                     )
 
-                this.send_response(200)
-                this.send_header("Content-type", "text/html")
-                this.end_headers()
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()
 
-                this.wfile.write(b"OK")
+                self.wfile.write(b"OK")
 
         # noinspection PyTypeChecker
         self.httpd = HTTPServer(("", self.port), Handler)

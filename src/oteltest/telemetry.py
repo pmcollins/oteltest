@@ -3,18 +3,31 @@ from __future__ import annotations
 import dataclasses
 import json
 from collections.abc import Iterable
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from google.protobuf.json_format import MessageToDict
-from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
-    ExportLogsServiceRequest,
-)
-from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
-    ExportMetricsServiceRequest,
-)
-from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
-    ExportTraceServiceRequest,
-)
+
+# Move third-party imports into type-checking blocks
+if TYPE_CHECKING:
+    from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
+        ExportLogsServiceRequest,
+    )
+    from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
+        ExportMetricsServiceRequest,
+    )
+    from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+        ExportTraceServiceRequest,
+    )
+else:
+    from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
+        ExportLogsServiceRequest,
+    )
+    from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
+        ExportMetricsServiceRequest,
+    )
+    from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+        ExportTraceServiceRequest,
+    )
 
 
 @dataclasses.dataclass
@@ -52,13 +65,13 @@ class Telemetry:
 
     def __init__(
         self,
-        metric_requests: Optional[List[Request]] = None,
-        trace_requests: Optional[List[Request]] = None,
-        log_requests: Optional[List[Request]] = None,
+        metric_requests: list[Request] | None = None,
+        trace_requests: list[Request] | None = None,
+        log_requests: list[Request] | None = None,
     ):
-        self.metric_requests: List[Request] = metric_requests or []
-        self.trace_requests: List[Request] = trace_requests or []
-        self.log_requests: List[Request] = log_requests or []
+        self.metric_requests: list[Request] = metric_requests or []
+        self.trace_requests: list[Request] = trace_requests or []
+        self.log_requests: list[Request] = log_requests or []
 
     def add_metric(
         self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
@@ -75,13 +88,13 @@ class Telemetry:
     ):
         self.log_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
-    def get_metric_requests(self) -> List[Request]:
+    def get_metric_requests(self) -> list[Request]:
         return self.metric_requests
 
-    def get_trace_requests(self) -> List[Request]:
+    def get_trace_requests(self) -> list[Request]:
         return self.trace_requests
 
-    def get_logs_requests(self) -> List[Request]:
+    def get_logs_requests(self) -> list[Request]:
         return self.log_requests
 
     def __str__(self):

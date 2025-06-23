@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import abc
-from typing import Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
-from oteltest.telemetry import Telemetry
+# Import only for type checking
+if TYPE_CHECKING:
+    from oteltest.telemetry import Telemetry
+else:
+    # Import Telemetry at runtime too
+    from oteltest.telemetry import Telemetry
 
 
 class OtelTest(abc.ABC):
@@ -44,7 +49,7 @@ class OtelTest(abc.ABC):
         """
 
     @abc.abstractmethod
-    def on_start(self) -> Optional[float]:
+    def on_start(self) -> float | None:
         """
         Called immediately after the script has started.
 

@@ -97,3 +97,9 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
+[tool.ruff.lint]
+ignore = ["T201"]
+
+[tool.ruff.lint.per-file-ignores]
+"example_scripts/*.py" = ["ALL"]
+"tests/**/*.py" = ["S101", "PLR2004"]

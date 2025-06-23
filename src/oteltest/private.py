@@ -9,10 +9,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import typing
 import venv
-from logging import Logger
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 from oteltest import OtelTest
 from oteltest.sink import GrpcSink, HttpSink, raise_if_port_in_use
@@ -132,7 +134,7 @@ def run_python_script(
     oteltest_instance,
     script_venv,
     logger: Logger,
-) -> typing.Tuple[str, str, int]:
+) -> tuple[str, str, int]:
     logger.info("Running python script: %s", script)
     python_script_cmd = [
         script_venv.path_to_executable("python"),
@@ -157,11 +159,12 @@ def run_python_script(
         )
     try:
         stdout, stderr = proc.communicate(timeout=timeout_seconds)
-        return stdout, stderr, proc.returncode
     except subprocess.TimeoutExpired as ex:
         proc.kill()
         logger.info("Script %s terminated", script)
         return decode(ex.stdout), decode(ex.stderr), proc.returncode
+    else:
+        return stdout, stderr, proc.returncode
 
 
 def start_subprocess(python_script_cmd, env):
@@ -174,7 +177,7 @@ def start_subprocess(python_script_cmd, env):
     )
 
 
-def decode(b: typing.Optional[bytes]) -> str:
+def decode(b: bytes | None) -> str:
     return b.decode("utf-8") if b else ""
 
 

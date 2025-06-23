@@ -53,7 +53,7 @@ class PrintHandler(RequestHandler):
 
 
 def print_request(request):
-    print(str(MessageToDict(request)), flush=True)  # noqa: T201
+    print(str(MessageToDict(request)), flush=True)
 
 
 class AccumulatingHandler(RequestHandler):
