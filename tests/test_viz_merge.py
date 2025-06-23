@@ -1,11 +1,12 @@
 import json
-import os
+from pathlib import Path
 
 import pytest
 
 from oteltest.viz import normalize_telemetry, normalize_traces
 
-TEST_JSON_PATH = os.path.join(os.path.dirname(__file__), "fixtures/agent_with_tools.0.json")
+# Use pathlib to construct the fixture path robustly
+TEST_JSON_PATH = Path(__file__).parent / "fixtures" / "agent_with_tools.0.json"
 
 
 @pytest.fixture
