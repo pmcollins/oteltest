@@ -6,7 +6,7 @@ import pytest
 from oteltest.viz import normalize_telemetry, normalize_traces
 
 # Use pathlib to construct the fixture path robustly
-TEST_JSON_PATH = Path(__file__).parent / "fixtures" / "agent_with_tools.0.json"
+TEST_JSON_PATH = Path(__file__).parent / "fixtures" / "agent_with_tools.json"
 
 
 @pytest.fixture
