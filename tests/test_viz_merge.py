@@ -5,7 +5,7 @@ import pytest
 
 from oteltest.viz import normalize_telemetry, normalize_traces
 
-TEST_JSON_PATH = os.path.join(os.path.dirname(__file__), "../example_scripts/json/agent_with_tools.0.json")
+TEST_JSON_PATH = os.path.join(os.path.dirname(__file__), "fixtures/agent_with_tools.0.json")
 
 
 @pytest.fixture
