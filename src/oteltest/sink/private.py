@@ -40,4 +40,4 @@ class _MetricsServiceServicer(metrics_service_pb2_grpc.MetricsServiceServicer):
 
 
 def headers_from_context(ctx):
-    return {k: v for k, v in ctx.invocation_metadata()}
+    return dict(ctx.invocation_metadata())
