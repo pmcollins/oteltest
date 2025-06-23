@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import abc
-from typing import Mapping, Sequence
+from typing import TYPE_CHECKING, Mapping, Sequence
 
-from oteltest.telemetry import Telemetry
+if TYPE_CHECKING:
+    from oteltest.telemetry import Telemetry
 
 
 class OtelTest(abc.ABC):
