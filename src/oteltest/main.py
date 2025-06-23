@@ -29,10 +29,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.verbose:
-        logging_level = logging.DEBUG
-    else:
-        logging_level = logging.INFO
+    logging_level = logging.DEBUG if args.verbose else logging.INFO
 
     logging.basicConfig(
         level=logging_level,

@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 from opentelemetry import trace
 
 SERVICE_NAME = "my-otel-test"
 
 if __name__ == "__main__":
     tracer = trace.get_tracer("my-tracer")
-    with tracer.start_as_current_span("aaa"):
-        with tracer.start_as_current_span("bbb"):
-            with tracer.start_as_current_span("ccc"):
-                print('hola mundo')
+    with (
+        tracer.start_as_current_span("aaa"),
+        tracer.start_as_current_span("bbb"),
+        tracer.start_as_current_span("ccc")
+    ):
+        print('hola mundo')
 
 
 class MyOtelTest:
