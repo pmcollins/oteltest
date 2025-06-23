@@ -38,7 +38,7 @@ def is_port_in_use(port):
         try:
             s.bind(("127.0.0.1", port))
             return False
-        except socket.error:
+        except OSError:
             return True
 
 
@@ -131,7 +131,7 @@ class HttpSink:
                 this.send_header("Content-type", "text/html")
                 this.end_headers()
 
-                this.wfile.write("OK".encode("utf-8"))
+                this.wfile.write(b"OK")
 
         # noinspection PyTypeChecker
         self.httpd = HTTPServer(("", self.port), Handler)

@@ -1,7 +1,7 @@
 import copy
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Any, Dict, List, Tuple
 
 from flask import Flask, render_template
 
@@ -112,7 +112,7 @@ class TraceApp:
         return [f.name for f in self.trace_dir.glob('*.json')]
 
     def _load_trace_file(self, file_path: str) -> Dict:
-        with open(file_path, 'r') as f:
+        with open(file_path) as f:
             return json.load(f)
 
     def _find_spans(self, data: Dict) -> List[Dict]:

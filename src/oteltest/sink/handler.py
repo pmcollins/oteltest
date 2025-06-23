@@ -61,7 +61,7 @@ class AccumulatingHandler(RequestHandler):
         self.start_time = time.time_ns()
         self.telemetry = Telemetry()
 
-    def handle_logs(self, request: ExportLogsServiceRequest, headers):  # noqa: ARG002
+    def handle_logs(self, request: ExportLogsServiceRequest, headers):
         self.telemetry.add_log(
             request,
             headers,
@@ -70,14 +70,14 @@ class AccumulatingHandler(RequestHandler):
 
     def handle_metrics(
         self, request: ExportMetricsServiceRequest, headers
-    ):  # noqa: ARG002
+    ):
         self.telemetry.add_metric(
             request,
             headers,
             self.get_test_elapsed_ms(),
         )
 
-    def handle_trace(self, request: ExportTraceServiceRequest, headers):  # noqa: ARG002
+    def handle_trace(self, request: ExportTraceServiceRequest, headers):
         self.telemetry.add_trace(
             request,
             headers,

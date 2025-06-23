@@ -4,6 +4,7 @@ import logging
 from oteltest.private import run
 from oteltest.version import __version__ as version
 
+
 def main():
     parser = argparse.ArgumentParser(description=f"Version {version}")
 

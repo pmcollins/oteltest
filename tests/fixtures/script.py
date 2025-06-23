@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Mapping
+from typing import Mapping, Optional, Sequence
 
 
 class MyOtelTest:

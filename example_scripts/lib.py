@@ -2,6 +2,7 @@ import time
 
 from opentelemetry import trace
 
+
 def trace_loop(loops):
     tracer = trace.get_tracer("my-tracer")
     for i in range(loops):

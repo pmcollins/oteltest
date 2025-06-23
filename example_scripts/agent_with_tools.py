@@ -9,7 +9,6 @@ import os
 from datetime import datetime
 
 
-
 def run_agent_with_tools():
     """Run a simple agent with tools example."""
 

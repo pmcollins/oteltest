@@ -160,11 +160,10 @@ def extract_leaves(items, key, *remaining_keys):
         next_items = getattr(item, key)
         if remaining_keys:
             out.extend(extract_leaves(next_items, *remaining_keys))
+        elif isinstance(next_items, Iterable):
+            out.extend(next_items)
         else:
-            if isinstance(next_items, Iterable):
-                out.extend(next_items)
-            else:
-                out.append(next_items)
+            out.append(next_items)
     return out
 
 

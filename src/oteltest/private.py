@@ -142,7 +142,7 @@ def run_python_script(
         python_script_cmd.insert(0, script_venv.path_to_executable(wrapper_script))
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
-    logger.info(f"Start subprocess: %s", python_script_cmd)
+    logger.info("Start subprocess: %s", python_script_cmd)
     proc = start_subprocess_func(
         python_script_cmd, oteltest_instance.environment_variables()
     )

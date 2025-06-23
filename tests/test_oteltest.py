@@ -9,25 +9,24 @@ from opentelemetry.proto.logs.v1.logs_pb2 import LogRecord
 from opentelemetry.proto.metrics.v1.metrics_pb2 import Metric
 from opentelemetry.proto.trace.v1.trace_pb2 import Span
 
-from oteltest import OtelTest, telemetry, Telemetry
+from oteltest import OtelTest, Telemetry, telemetry
 from oteltest.private import (
+    Venv,
     get_next_json_file,
     is_test_class,
     load_oteltest_class_for_script,
     run_python_script,
     save_telemetry_json,
-    Venv,
 )
 from oteltest.telemetry import (
     count_logs,
     extract_leaves,
+    get_attribute,
     get_logs,
-    get_attribute, get_logs,
     get_metrics,
     get_spans,
     has_log_attribute,
 )
-
 
 # fixtures
 
@@ -65,17 +64,17 @@ def test_get_next_json_file(tmp_path):
     path_to_dir = str(tmp_path)
 
     next_file = get_next_json_file(path_to_dir, module_name)
-    assert "my_module_name.0.json" == next_file
+    assert next_file == "my_module_name.0.json"
 
     save_telemetry_json(path_to_dir, next_file, "")
 
     next_file = get_next_json_file(path_to_dir, module_name)
-    assert "my_module_name.1.json" == next_file
+    assert next_file == "my_module_name.1.json"
 
     save_telemetry_json(path_to_dir, next_file, "[1]")
 
     next_file = get_next_json_file(path_to_dir, module_name)
-    assert "my_module_name.2.json" == next_file
+    assert next_file == "my_module_name.2.json"
 
 
 def test_is_test_class():
