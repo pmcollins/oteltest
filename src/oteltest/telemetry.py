@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import json
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from google.protobuf.json_format import MessageToDict
 
@@ -182,7 +182,7 @@ def first_span(tel: Telemetry):
     return span_at_index(tel, 0, 0, 0, 0)
 
 
-def span_at_index(tel: Telemetry, i: int, j: int, k: int, l: int):
+def span_at_index(tel: Telemetry, i: int, j: int, k: int, l: int):  # noqa: E741
     if len(tel.trace_requests):
         req = tel.trace_requests[i]
         if len(req.pbreq.resource_spans):
@@ -194,7 +194,7 @@ def span_at_index(tel: Telemetry, i: int, j: int, k: int, l: int):
     return None
 
 
-def span_attribute_by_name(span, attr_name) -> Optional[str]:
+def span_attribute_by_name(span, attr_name) -> str | None:
     for attr in span.attributes:
         if attr.key == attr_name:
             if attr.value.HasField("string_value"):
