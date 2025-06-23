@@ -196,7 +196,6 @@ def span_at_index(tel: Telemetry, i: int, j: int, k: int, l: int):  # noqa: E741
 
 def span_attribute_by_name(span, attr_name) -> str | None:
     for attr in span.attributes:
-        if attr.key == attr_name:
-            if attr.value.HasField("string_value"):
-                return attr.value.string_value
+        if attr.key == attr_name and attr.value.HasField("string_value"):
+            return attr.value.string_value
     return None
