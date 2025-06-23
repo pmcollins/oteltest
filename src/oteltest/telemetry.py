@@ -18,16 +18,6 @@ if TYPE_CHECKING:
     from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
         ExportTraceServiceRequest,
     )
-else:
-    from opentelemetry.proto.collector.logs.v1.logs_service_pb2 import (
-        ExportLogsServiceRequest,
-    )
-    from opentelemetry.proto.collector.metrics.v1.metrics_service_pb2 import (
-        ExportMetricsServiceRequest,
-    )
-    from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
-        ExportTraceServiceRequest,
-    )
 
 
 @dataclasses.dataclass
@@ -37,9 +27,7 @@ class Request:
     between the start of the test and the receipt of the message.
     """
 
-    pbreq: Union[
-        ExportTraceServiceRequest, ExportMetricsServiceRequest, ExportLogsServiceRequest
-    ]
+    pbreq: ExportTraceServiceRequest | ExportMetricsServiceRequest | ExportLogsServiceRequest
     headers: dict
     test_elapsed_ms: int
 
