@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import Mapping, Sequence
 
-# Import only for type checking
-if TYPE_CHECKING:
-    from oteltest.telemetry import Telemetry
-else:
-    # Import Telemetry at runtime too
-    from oteltest.telemetry import Telemetry
+from oteltest.telemetry import Telemetry
 
 
 class OtelTest(abc.ABC):
@@ -63,9 +58,7 @@ class OtelTest(abc.ABC):
         """
 
     @abc.abstractmethod
-    def on_stop(
-        self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-    ) -> None:
+    def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         """
         Called immediately after the script has ended. Passed in are both the telemetry otelsink received while the
         script was running and the output of the script (stdout, stderr, returncode).

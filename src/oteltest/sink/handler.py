@@ -12,7 +12,7 @@ from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
     ExportTraceServiceRequest,
 )
 
-from oteltest import Telemetry
+from oteltest.telemetry import Telemetry
 
 
 class RequestHandler(abc.ABC):

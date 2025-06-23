@@ -11,7 +11,7 @@ from opentelemetry.proto.logs.v1.logs_pb2 import LogRecord
 from opentelemetry.proto.metrics.v1.metrics_pb2 import Metric
 from opentelemetry.proto.trace.v1.trace_pb2 import Span
 
-from oteltest import OtelTest, Telemetry, telemetry
+from oteltest import OtelTest, telemetry
 from oteltest.private import (
     Venv,
     get_next_json_file,
@@ -21,6 +21,7 @@ from oteltest.private import (
     save_telemetry_json,
 )
 from oteltest.telemetry import (
+    Telemetry,
     count_logs,
     extract_leaves,
     get_attribute,
@@ -147,10 +148,12 @@ def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
     span = telemetry.first_span(metrics_and_traces_telemetry_fixture)
     assert span.trace_id.hex() == "0adffbc2cb9f3cdb09f6801a788da973"
 
+
 def foreach_span(tel, f):
     spans = get_spans(tel)
     for span in spans:
         f(span)
+
 
 def all_spans_have_resource_attribute(tel: Telemetry, attrname):
     trace_reqs = tel.get_trace_requests()
@@ -161,6 +164,7 @@ def all_spans_have_resource_attribute(tel: Telemetry, attrname):
                 return False
     return True
 
+
 def test_all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture: Telemetry):
     assert all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture, "service.name")
     assert not all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture, "foo")
@@ -169,8 +173,6 @@ def test_all_spans_have_resource_attribute(metrics_and_traces_telemetry_fixture:
 def test_span_attribute_by_name(client_server_fixture: Telemetry):
     span = telemetry.first_span(client_server_fixture)
     assert telemetry.span_attribute_by_name(span, "http.method") == "GET"
-
-
 
 
 def test_run_python_script():
@@ -294,7 +296,6 @@ class FakeOtelTest:
 
 
 class FakeSubProcess:
-
     returncode = 0
 
     def communicate(self, timeout):

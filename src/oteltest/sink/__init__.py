@@ -90,7 +90,7 @@ class GrpcSink:
         """Blocks until the server stops."""
         try:
             self.svr.wait_for_termination()
-        except BaseException:
+        except (KeyboardInterrupt, SystemExit):
             self.logger.info("terminated")
 
     def stop(self):
@@ -99,8 +99,7 @@ class GrpcSink:
 
 
 class HttpSink:
-
-    def __init__(self, listener, logger: logging.Logger, port=4318, daemon=True):
+    def __init__(self, listener, logger: logging.Logger, port=4318, *, daemon=True):
         self.httpd = None
         self.listener = listener
         self.logger = logger
@@ -119,9 +118,9 @@ class HttpSink:
 
     def run_server(self):
         class Handler(BaseHTTPRequestHandler):
-
-            # noinspection PyPep8Naming
-            def do_POST(self):
+            # Method name must remain with uppercase letters as it's part of the HTTP protocol
+            # implementation in the standard library BaseHTTPRequestHandler
+            def do_POST(self):  # noqa: N802
                 # /v1/traces
                 content_length = int(self.headers["Content-Length"])
                 post_data = self.rfile.read(content_length)
@@ -129,9 +128,7 @@ class HttpSink:
                 otlp_handler_func = self.handlers.get(self.path)
                 if otlp_handler_func:
                     # noinspection PyArgumentList
-                    otlp_handler_func(
-                        post_data, dict(self.headers.items())
-                    )
+                    otlp_handler_func(post_data, dict(self.headers.items()))
 
                 self.send_response(200)
                 self.send_header("Content-type", "text/html")
