@@ -9,4 +9,3 @@ def trace_loop(loops):
         with tracer.start_as_current_span("my-span"):
             print(f"loop {i + 1}/{loops}")
             time.sleep(0.5)
-

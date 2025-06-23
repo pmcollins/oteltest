@@ -68,9 +68,7 @@ class AccumulatingHandler(RequestHandler):
             self.get_test_elapsed_ms(),
         )
 
-    def handle_metrics(
-        self, request: ExportMetricsServiceRequest, headers
-    ):
+    def handle_metrics(self, request: ExportMetricsServiceRequest, headers):
         self.telemetry.add_metric(
             request,
             headers,

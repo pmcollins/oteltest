@@ -33,7 +33,8 @@ def run_agent_with_tools():
         Tool(
             name="CurrentTime",
             description="Useful for getting the current date and time. This tool doesn't require any input.",
-            func=lambda input_value: print(f"DEBUG - CurrentTime received input: '{input_value}'") or get_current_time(),  # Debug wrapper
+            func=lambda input_value: print(f"DEBUG - CurrentTime received input: '{input_value}'")
+            or get_current_time(),  # Debug wrapper
         ),
         Tool(
             name="WebSearch",
@@ -46,8 +47,11 @@ def run_agent_with_tools():
     llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
     # Step 3: Create the agent using ReAct framework
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a helpful assistant that has access to the following tools:
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """You are a helpful assistant that has access to the following tools:
         
 {tools}
 
@@ -61,10 +65,12 @@ Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation can repeat N times)
 Thought: I now know the final answer
 Final Answer: the final answer to the original input question
-"""),
-        ("human", "{input}"),
-        ("ai", "{agent_scratchpad}"),
-    ])
+""",
+            ),
+            ("human", "{input}"),
+            ("ai", "{agent_scratchpad}"),
+        ]
+    )
 
     agent = create_react_agent(llm, tools, prompt)
 
@@ -144,10 +150,14 @@ class OtelTest:
 
     def requirements(self):
         return [
-            "urllib3<2.0", "langchain", "langchain-openai", "langchain-community",
-            "opentelemetry-distro[otlp]", "faiss-cpu",
+            "urllib3<2.0",
+            "langchain",
+            "langchain-openai",
+            "langchain-community",
+            "opentelemetry-distro[otlp]",
+            "faiss-cpu",
             "/Users/pabcolli/github/zhirafovod/opentelemetry-python-contrib/"
-            "instrumentation-genai/opentelemetry-instrumentation-langchain"
+            "instrumentation-genai/opentelemetry-instrumentation-langchain",
         ]
 
     def is_http(self) -> bool:

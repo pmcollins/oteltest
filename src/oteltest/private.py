@@ -48,9 +48,7 @@ def handle_file(file_path, temp_dir, json_dir, logger):
     logger.info("Setting up environment for file %s", file_path)
     script_dir = os.path.dirname(file_path)
     sys.path.append(script_dir)
-    setup_script_environment(
-        temp_dir, script_dir, os.path.basename(file_path), json_dir, logger
-    )
+    setup_script_environment(temp_dir, script_dir, os.path.basename(file_path), json_dir, logger)
 
 
 def ls_scripts(script_dir):
@@ -61,9 +59,7 @@ def ls_scripts(script_dir):
     return scripts
 
 
-def setup_script_environment(
-    venv_parent: str, script_dir: str, script: str, json_dir_base: str, logger: Logger
-):
+def setup_script_environment(venv_parent: str, script_dir: str, script: str, json_dir_base: str, logger: Logger):
     module_name = script[:-3]
     module_path = os.path.join(script_dir, script)
     oteltest_class = load_oteltest_class_for_script(module_name, module_path, logger)
@@ -147,16 +143,12 @@ def run_python_script(
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
     logger.info("Start subprocess: %s", python_script_cmd)
-    proc = start_subprocess_func(
-        python_script_cmd, oteltest_instance.environment_variables()
-    )
+    proc = start_subprocess_func(python_script_cmd, oteltest_instance.environment_variables())
     timeout_seconds = oteltest_instance.on_start()
     if timeout_seconds is None:
         logger.info("Will wait for %s to finish by itself", script)
     else:
-        logger.info(
-            "Will wait for %d seconds for %s to finish", timeout_seconds, script
-        )
+        logger.info("Will wait for %d seconds for %s to finish", timeout_seconds, script)
     try:
         stdout, stderr = proc.communicate(timeout=timeout_seconds)
     except subprocess.TimeoutExpired as ex:
@@ -223,17 +215,11 @@ def load_oteltest_class_for_script(module_name, module_path, logger: Logger):
 
 
 def is_test_class(value):
-    return inspect.isclass(value) and (
-        is_strict_subclass(value) or "OtelTest" in value.__name__
-    )
+    return inspect.isclass(value) and (is_strict_subclass(value) or "OtelTest" in value.__name__)
 
 
 def is_strict_subclass(value):
-    return (
-        issubclass(value, OtelTest)
-        and value is not OtelTest
-        and not inspect.isabstract(value)
-    )
+    return issubclass(value, OtelTest) and value is not OtelTest and not inspect.isabstract(value)
 
 
 class Venv:

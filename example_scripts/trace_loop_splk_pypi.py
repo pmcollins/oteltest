@@ -6,6 +6,7 @@ NUM_ADDS = 12
 if __name__ == "__main__":
     trace_loop(NUM_ADDS)
 
+
 class MyOtelTest:
     def requirements(self):
         return ("splunk-opentelemetry[otlp]",)

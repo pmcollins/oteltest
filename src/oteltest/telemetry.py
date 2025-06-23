@@ -61,19 +61,13 @@ class Telemetry:
         self.trace_requests: list[Request] = trace_requests or []
         self.log_requests: list[Request] = log_requests or []
 
-    def add_metric(
-        self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int
-    ):
+    def add_metric(self, pbreq: ExportMetricsServiceRequest, headers: dict, test_elapsed_ms: int):
         self.metric_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
-    def add_trace(
-        self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int
-    ):
+    def add_trace(self, pbreq: ExportTraceServiceRequest, headers: dict, test_elapsed_ms: int):
         self.trace_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
-    def add_log(
-        self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int
-    ):
+    def add_log(self, pbreq: ExportLogsServiceRequest, headers: dict, test_elapsed_ms: int):
         self.log_requests.append(Request(pbreq, headers, test_elapsed_ms))
 
     def get_metric_requests(self) -> list[Request]:

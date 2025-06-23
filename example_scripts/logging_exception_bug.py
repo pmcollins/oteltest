@@ -4,10 +4,10 @@ from __future__ import annotations
 Causes a ValueError to be raised, caught, and logged. The exception arises because we are trying to log an object.
 """
 
+
 def main():
     import logging
     import time
-
 
     logging.basicConfig(level=logging.NOTSET)
     logging.getLogger().addHandler(create_logging_handler())
@@ -34,9 +34,7 @@ def create_logging_handler():
     from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 
     logger_provider = LoggerProvider()
-    logger_provider.add_log_record_processor(
-        BatchLogRecordProcessor(OTLPLogExporter(insecure=True))
-    )
+    logger_provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(insecure=True)))
     return LoggingHandler(logger_provider=logger_provider)
 
 
@@ -45,7 +43,6 @@ if __name__ == "__main__":
 
 
 class MyOtelTest:
-
     def environment_variables(self):
         return {}
 

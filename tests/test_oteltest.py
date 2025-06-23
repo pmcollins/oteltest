@@ -97,9 +97,7 @@ def test_is_test_class():
         def on_start(self) -> Optional[float]:
             pass
 
-        def on_stop(
-            self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-        ) -> None:
+        def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
             pass
 
         def is_http(self) -> bool:
@@ -179,7 +177,6 @@ def test_run_python_script():
     env_store = {"aaa": "bbb"}
 
     class Tester:
-
         def __init__(self):
             self.python_script_cmd = None
             self.env = None
@@ -237,9 +234,7 @@ def test_has_log_attribute(logs_telemetry_fixture):
 
 def test_extract_leaves(metrics_and_traces_telemetry_fixture):
     tel = metrics_and_traces_telemetry_fixture
-    leaves = extract_leaves(
-        tel, "trace_requests", "pbreq", "resource_spans", "resource", "attributes"
-    )
+    leaves = extract_leaves(tel, "trace_requests", "pbreq", "resource_spans", "resource", "attributes")
     assert len(leaves) == 18
 
 
@@ -271,7 +266,6 @@ def telemetry_from_dict(d) -> telemetry.Telemetry:
 
 
 class FakeOtelTest:
-
     def __init__(self, env=None, reqs=None, wrapper=None):
         self.env = env or {}
         self.reqs = reqs or []
@@ -289,9 +283,7 @@ class FakeOtelTest:
     def on_start(self) -> Optional[float]:
         pass
 
-    def on_stop(
-        self, tel: Telemetry, stdout: str, stderr: str, returncode: int
-    ) -> None:
+    def on_stop(self, tel: Telemetry, stdout: str, stderr: str, returncode: int) -> None:
         pass
 
 

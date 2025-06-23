@@ -9,14 +9,10 @@ def main():
     parser = argparse.ArgumentParser(description=f"Version {version}")
 
     d_help = "An optional override directory to hold per-script venv directories."
-    parser.add_argument(
-        "-d", "--venv-parent-dir", type=str, required=False, help=d_help
-    )
+    parser.add_argument("-d", "--venv-parent-dir", type=str, required=False, help=d_help)
 
     j_help = "An optional value to hold the directory into which json telemetry files are written"
-    parser.add_argument(
-        "-j", "--json-dir", type=str, required=False, help=j_help, default="json"
-    )
+    parser.add_argument("-j", "--json-dir", type=str, required=False, help=j_help, default="json")
 
     v_help = "Enable verbose output; include this flag for detailed logging."
     parser.add_argument("-v", "--verbose", action="store_true", help=v_help)
