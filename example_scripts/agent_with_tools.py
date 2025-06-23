@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Agent with Tools example using LangChain with OpenTelemetry instrumentation.
 
@@ -5,8 +7,10 @@ Required packages:
 pip install langchain langchain_openai langchain_community
 """
 
+import datetime
 import os
-from datetime import datetime
+
+from zoneinfo import ZoneInfo  # For timezone-aware datetime
 
 
 def run_agent_with_tools():
@@ -107,7 +111,7 @@ def get_current_time():
     Returns:
         String with the current time
     """
-    now = datetime.now()
+    now = datetime.datetime.now(tz=ZoneInfo("UTC"))
     return f"The current time is {now.strftime('%H:%M:%S')} on {now.strftime('%Y-%m-%d')}."
 
 
@@ -157,4 +161,3 @@ class OtelTest:
 
     def on_stop(self, tel, stdout: str, stderr: str, returncode: int) -> None:
         return None
-

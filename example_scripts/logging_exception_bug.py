@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Causes a ValueError to be raised, caught, and logged. The exception arises because we are trying to log an object.
 """
@@ -13,16 +15,17 @@ def main():
     logger = logging.getLogger(__name__)
 
     try:
-        raise ValueError("Err")
+        error_message = "Err"
+        raise ValueError(error_message)
     except ValueError as e:
-        # log the raw exception object
-        logger.error(e)
-        # this causes a ValueError to be raised, caught, and logged
+        # Using logger.exception instead of logger.error for the exception
+        logger.exception(e)
+        # This properly logs the exception with traceback
 
     for _ in range(4):
         # demonstrate that the exception was handled and that we can still perform an operation
         time.sleep(1)
-        print("x")
+        logger.info("x")  # Replacing print with logger.info
 
 
 def create_logging_handler():
