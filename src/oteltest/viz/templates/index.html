@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Trace Files</title>
+    <title>Trace and Metric Files</title>
     <style>
         body { font-family: monospace; margin: 40px; }
         h1 { color: #333; }
@@ -12,11 +12,13 @@
     </style>
 </head>
 <body>
-    <h1>Trace Files</h1>
+    <h1>Telemetry</h1>
     <ul>
         {% for file in files %}
         <li><a href="/trace/{{ file }}">{{ file }}</a></li>
         {% endfor %}
     </ul>
+  
+    
 </body>
 </html>
