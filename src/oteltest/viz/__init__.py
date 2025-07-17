@@ -102,7 +102,7 @@ class TraceApp:
         self.trace_dir = Path(trace_dir)
         self.app = Flask(__name__)
         self.app.add_url_rule("/", "index", self.index)
-        self.app.add_url_rule("/trace/<path:filename>", "view_trace", self.view_trace)
+        self.app.add_url_rule("/trace/<path:filename>", "view_telemetry", self.view_telemetry)
 
     def run(self, **kwargs):
         self.app.run(**kwargs)
@@ -111,15 +111,13 @@ class TraceApp:
         json_files = self._get_trace_files()
         return render_template("index.html", files=json_files)
 
-    def view_trace(self, filename):
-        file_path = self.trace_dir / filename
-        data = self._load_trace_file(str(file_path))
+    
+    def process_traces(self, traces: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int, int]:
         resource_groups = []
         min_start = None
         max_end = None
-        # Use the merged telemetry structure
-        merged = normalize_telemetry(data)
-        for resource_span in merged["traces"]:
+        
+        for resource_span in traces:
             resource_attrs = resource_span.get("resource", {}).get("attributes", [])
             # Collect all spans for this resource
             all_spans = []
@@ -147,14 +145,9 @@ class TraceApp:
         if max_end is None:
             max_end = 0
 
-        metric_groups = self.process_metrics(merged["metrics"])
-
-        return render_template(
-            "trace.html", filename=filename, resource_groups=resource_groups, metric_groups=metric_groups, min_start=min_start, max_end=max_end
-        )
+        return resource_groups, min_start, max_end
     
-    @staticmethod
-    def process_metrics(metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def process_metrics(self, metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
         metric_groups = [] 
         for resource_metrics in metrics: 
             resource_attrs = resource_metrics.get("resource", {}).get("attributes", [])
@@ -166,6 +159,16 @@ class TraceApp:
             metric_groups.append({"attrs": resource_attrs, "scope_metrics_list": scope_metrics_list})
         return metric_groups
     
+    def view_telemetry(self, filename):
+        file_path = self.trace_dir / filename
+        data = self._load_trace_file(str(file_path))
+
+        merged = normalize_telemetry(data)
+        resource_groups, min_start, max_end = self.process_traces(merged["traces"])
+        metric_groups = self.process_metrics(merged["metrics"])
+
+        return render_template("trace.html",filename=filename, resource_groups=resource_groups, metric_groups=metric_groups, min_start=min_start, max_end=max_end)
+
     def _get_trace_files(self):
         return [f.name for f in self.trace_dir.glob("*.json")]
 
