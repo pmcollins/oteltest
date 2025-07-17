@@ -117,15 +117,15 @@ class HttpSink:
         self.svr_thread.start()
 
     def run_server(self):
+        outer_self = self
+
         class Handler(BaseHTTPRequestHandler):
-            # Method name must remain with uppercase letters as it's part of the HTTP protocol
-            # implementation in the standard library BaseHTTPRequestHandler
             def do_POST(self):  # noqa: N802
                 # /v1/traces
                 content_length = int(self.headers["Content-Length"])
                 post_data = self.rfile.read(content_length)
 
-                otlp_handler_func = self.handlers.get(self.path)
+                otlp_handler_func = outer_self.handlers.get(self.path)
                 if otlp_handler_func:
                     # noinspection PyArgumentList
                     otlp_handler_func(post_data, dict(self.headers.items()))
