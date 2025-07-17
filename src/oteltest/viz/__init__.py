@@ -4,6 +4,7 @@ import copy
 import json
 from pathlib import Path
 from typing import Any
+from datetime import datetime
 
 from flask import Flask, render_template
 
@@ -146,9 +147,16 @@ class TraceApp:
         if max_end is None:
             max_end = 0
 
-        # Process Metrics 
+        metric_groups = self.process_metrics(merged["metrics"])
+
+        return render_template(
+            "trace.html", filename=filename, resource_groups=resource_groups, metric_groups=metric_groups, min_start=min_start, max_end=max_end
+        )
+    
+    @staticmethod
+    def process_metrics(metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
         metric_groups = [] 
-        for resource_metrics in merged["metrics"]: 
+        for resource_metrics in metrics: 
             resource_attrs = resource_metrics.get("resource", {}).get("attributes", [])
             scope_metrics_list = []
             for scope_metric in resource_metrics.get("scopeMetrics", []):
@@ -156,12 +164,8 @@ class TraceApp:
                 metrics_data = scope_metric.get("metrics", [])
                 scope_metrics_list.append({"scope_attrs": scope_attrs, "metrics": metrics_data})
             metric_groups.append({"attrs": resource_attrs, "scope_metrics_list": scope_metrics_list})
-
-
-        return render_template(
-            "trace.html", filename=filename, resource_groups=resource_groups, metric_groups=metric_groups, min_start=min_start, max_end=max_end
-        )
-
+        return metric_groups
+    
     def _get_trace_files(self):
         return [f.name for f in self.trace_dir.glob("*.json")]
 
@@ -201,3 +205,4 @@ class TraceApp:
                 root_spans.append(span)
 
         return root_spans
+
