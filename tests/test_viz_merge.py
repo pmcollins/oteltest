@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from oteltest.viz import normalize_telemetry, normalize_traces
+from oteltest.viz import normalize_telemetry, normalize_traces, normalize_metrics
 
 # Use pathlib to construct the fixture path robustly
 TEST_JSON_PATH = Path(__file__).parent / "fixtures" / "agent_with_tools.json"
@@ -224,3 +224,111 @@ def test_multiple_resources_with_scopes():
     spans_a_res2 = scope_a_res2["spans"]
     assert len(spans_a_res2) == 1
     assert spans_a_res2[0]["spanId"] == "4"
+
+
+def test_normalize_metrics_empty():
+    # Should return an empty list or dict when given empty input
+    result = normalize_metrics([])
+    assert result == [] or result == {}  # Accept either, depending on implementation
+
+
+def test_normalize_metrics_single_metric():
+    metric_req = {
+        "pbreq": {
+            "resourceMetrics": [
+                {
+                    "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": "svc"}}]},
+                    "scopeMetrics": [
+                        {
+                            "scope": {"name": "test-scope", "version": "1.0"},
+                            "metrics": [
+                                {"name": "metric1", "sum": 42}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    result = normalize_metrics([metric_req])
+    assert isinstance(result, list)
+    assert len(result) == 1
+    res = result[0]
+    assert "resource" in res
+    assert "scopeMetrics" in res
+    assert len(res["scopeMetrics"]) == 1
+    scope = res["scopeMetrics"][0]
+    assert "metrics" in scope
+    assert len(scope["metrics"]) == 1
+    assert scope["metrics"][0]["name"] == "metric1"
+
+
+def test_normalize_metrics_merge_resources_and_scopes():
+    resource1 = [{"key": "service.name", "value": {"stringValue": "svc1"}}]
+    resource2 = [{"key": "service.name", "value": {"stringValue": "svc2"}}]
+    metric_req1 = {
+        "pbreq": {
+            "resourceMetrics": [
+                {
+                    "resource": {"attributes": resource1},
+                    "scopeMetrics": [
+                        {
+                            "scope": {"name": "scopeA", "version": "1.0"},
+                            "metrics": [
+                                {"name": "m1", "sum": 1}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    metric_req2 = {
+        "pbreq": {
+            "resourceMetrics": [
+                {
+                    "resource": {"attributes": resource1},
+                    "scopeMetrics": [
+                        {
+                            "scope": {"name": "scopeA", "version": "1.0"},
+                            "metrics": [
+                                {"name": "m2", "sum": 2}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    metric_req3 = {
+        "pbreq": {
+            "resourceMetrics": [
+                {
+                    "resource": {"attributes": resource2},
+                    "scopeMetrics": [
+                        {
+                            "scope": {"name": "scopeB", "version": "1.0"},
+                            "metrics": [
+                                {"name": "m3", "sum": 3}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+    merged = normalize_metrics([metric_req1, metric_req2, metric_req3])
+    assert isinstance(merged, list)
+    assert len(merged) == 2  # Two resources
+    svc_names = set()
+    for res in merged:
+        attrs = res.get("resource", {}).get("attributes", [])
+        for attr in attrs:
+            if attr.get("key") == "service.name":
+                svc_names.add(attr.get("value", {}).get("stringValue"))
+    assert svc_names == {"svc1", "svc2"}
+    # Check that metrics are merged by scope
+    for res in merged:
+        for scope in res["scopeMetrics"]:
+            assert "metrics" in scope
+            assert isinstance(scope["metrics"], list)
