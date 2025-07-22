@@ -112,6 +112,12 @@
             margin-left: 10px;
             margin-top: 5px;
         }
+        
+        .metric-table td.numeric {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-variant-numeric: tabular-nums;
+        }
     </style>
 </head>
 <body>
@@ -245,7 +251,7 @@
                                                     {% if metric.gauge %}
                                                         <li class="metric-data-point">Gauge:
                                                             {% if metric.gauge.dataPoints|length > 0 %}
-                                                                <table style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
                                                                     <thead>
                                                                         <tr style="background-color: #f5f5f5;">
                                                                             {% set sample_dp = metric.gauge.dataPoints[0] %}
@@ -254,7 +260,7 @@
                                                                                     <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
                                                                                 {% endfor %}
                                                                             {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Value</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Value</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -265,7 +271,7 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
                                                                             </tr>
                                                                         {% endfor %}
                                                                     </tbody>
@@ -275,7 +281,7 @@
                                                     {% elif metric.sum %}
                                                         <li class="metric-data-point">Sum (Monotonic: {{ metric.sum.isMonotonic }}, Aggregation: {{ metric.sum.aggregationTemporality }}):
                                                             {% if metric.sum.dataPoints|length > 0 %}
-                                                                <table style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
                                                                     <thead>
                                                                         <tr style="background-color: #f5f5f5;">
                                                                             {% set sample_dp = metric.sum.dataPoints[0] %}
@@ -284,7 +290,7 @@
                                                                                     <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
                                                                                 {% endfor %}
                                                                             {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Value</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Value</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -295,7 +301,7 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
                                                                             </tr>
                                                                         {% endfor %}
                                                                     </tbody>
@@ -305,7 +311,7 @@
                                                     {% elif metric.histogram %}
                                                         <li class="metric-data-point">Histogram (Aggregation: {{ metric.histogram.aggregationTemporality }}):
                                                             {% if metric.histogram.dataPoints|length > 0 %}
-                                                                <table style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
                                                                     <thead>
                                                                         <tr style="background-color: #f5f5f5;">
                                                                             {% set sample_dp = metric.histogram.dataPoints[0] %}
@@ -314,10 +320,10 @@
                                                                                     <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
                                                                                 {% endfor %}
                                                                             {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Count</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Sum</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Min</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Max</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Min</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Max</th>
                                                                             <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Buckets</th>
                                                                         </tr>
                                                                     </thead>
@@ -329,10 +335,10 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.min is defined %}{{ dp.min | round(2) if dp.min is number else dp.min }}{% else %}N/A{% endif %}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.max is defined %}{{ dp.max | round(2) if dp.max is number else dp.max }}{% else %}N/A{% endif %}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.min is defined %}{{ dp.min | round(2) if dp.min is number else dp.min }}{% else %}N/A{% endif %}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.max is defined %}{{ dp.max | round(2) if dp.max is number else dp.max }}{% else %}N/A{% endif %}</td>
                                                                                 <td style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.bucketCounts %}{{ dp.bucketCounts }}{% if dp.explicitBounds %} ({{ dp.explicitBounds }}){% endif %}{% else %}N/A{% endif %}</td>
                                                                             </tr>
                                                                         {% endfor %}
@@ -343,7 +349,7 @@
                                                     {% elif metric.exponentialHistogram %}
                                                         <li class="metric-data-point">Exponential Histogram (Aggregation: {{ metric.exponentialHistogram.aggregationTemporality }}):
                                                             {% if metric.exponentialHistogram.dataPoints|length > 0 %}
-                                                                <table style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
                                                                     <thead>
                                                                         <tr style="background-color: #f5f5f5;">
                                                                             {% set sample_dp = metric.exponentialHistogram.dataPoints[0] %}
@@ -352,8 +358,8 @@
                                                                                     <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
                                                                                 {% endfor %}
                                                                             {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Count</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Sum</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -364,8 +370,8 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
                                                                             </tr>
                                                                         {% endfor %}
                                                                     </tbody>
@@ -375,7 +381,7 @@
                                                     {% elif metric.summary %}
                                                         <li class="metric-data-point">Summary:
                                                             {% if metric.summary.dataPoints|length > 0 %}
-                                                                <table style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
                                                                     <thead>
                                                                         <tr style="background-color: #f5f5f5;">
                                                                             {% set sample_dp = metric.summary.dataPoints[0] %}
@@ -384,8 +390,8 @@
                                                                                     <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
                                                                                 {% endfor %}
                                                                             {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Count</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Sum</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
                                                                             <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Quantiles</th>
                                                                         </tr>
                                                                     </thead>
@@ -397,8 +403,8 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count }}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum }}</td>
                                                                                 <td style="border: 1px solid #ddd; padding: 4px 8px;">
                                                                                     {% if dp.quantileValues %}
                                                                                         {% for qv in dp.quantileValues %}{{ qv.quantile }}: {{ qv.value | round(2) if qv.value is defined and qv.value is number else qv.value }}{% if not loop.last %}, {% endif %}{% endfor %}
