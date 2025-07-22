@@ -1,8 +1,8 @@
 import pytest
-from oteltest.viz import TraceApp
+from oteltest.viz import VizApp
 
 def test_process_traces_merges_and_times():
-    app = TraceApp(trace_dir=".")
+    app = VizApp(trace_dir=".")
     traces = [
         {
             "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": "svc"}}]},
@@ -28,7 +28,7 @@ def test_process_traces_merges_and_times():
 
 
 def test_process_metrics_grouping():
-    app = TraceApp(trace_dir=".")
+    app = VizApp(trace_dir=".")
     metrics = [
         {
             "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": "svc"}}]},
@@ -51,7 +51,7 @@ def test_process_metrics_grouping():
 
 
 def test_view_telemetry_renders(monkeypatch, tmp_path):
-    app = TraceApp(trace_dir=tmp_path)
+    app = VizApp(trace_dir=tmp_path)
     fake_data = {
         "trace_requests": [],
         "metric_requests": []
