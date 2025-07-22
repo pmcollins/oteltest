@@ -97,7 +97,7 @@ def resource_key(resource: dict[str, Any]) -> tuple:
     )
 
 
-class TraceApp:
+class VizApp:
     def __init__(self, trace_dir: str):
         self.trace_dir = Path(trace_dir)
         self.app = Flask(__name__)
