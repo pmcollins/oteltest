@@ -180,7 +180,7 @@ class VizApp:
         return render_template("trace.html",filename=filename, resource_groups=resource_groups, metric_groups=metric_groups, min_start=min_start, max_end=max_end)
 
     def _get_trace_files(self):
-        return [f.name for f in self.trace_dir.glob("*.json")]
+        return sorted([f.name for f in self.trace_dir.glob("*.json")])
 
     def _load_trace_file(self, file_path: str) -> dict:
         with open(file_path) as f:
