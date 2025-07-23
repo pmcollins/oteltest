@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Trace: {{ filename }}</title>
+    <title>Telemetry: {{ filename }}</title>
     <style>
         body {
             font-family: monospace;
@@ -25,7 +25,7 @@
             text-decoration: underline;
         }
 
-        .trace {
+        .trace, .metric {
             margin-top: 20px;
         }
 
@@ -83,6 +83,40 @@
             display: inline-block; /* Change to inline-block */
             vertical-align: middle; /* Ensure vertical centering */
             position: relative;
+
+        }
+
+        .metric-item, .metric-item *, .metric-name-toggle, .metric-value, .metric-attributes, .metric-data-point {
+            font-family: monospace !important;
+            color: #222 !important;
+            font-weight: normal !important;
+            background: none !important;
+            border: none !important;
+            text-decoration: none !important;
+        }
+        .metric-item {
+            margin-bottom: 10px;
+            border-bottom: 1px dotted #eee;
+            padding-bottom: 5px;
+        }
+        .metric-item .metric-points {
+            display: none;
+        }
+        .metric-item.open .metric-points {
+            display: block;
+        }
+        .metric-name-toggle {
+            cursor: pointer;
+        }
+        .metric-data-point {
+            margin-left: 10px;
+            margin-top: 5px;
+        }
+        
+        .metric-table td.numeric {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-variant-numeric: tabular-nums;
         }
     </style>
 </head>
@@ -91,9 +125,10 @@
     <a href="/">← Back to file list</a>
 </div>
 
-<h1>Trace: {{ filename }}</h1>
+<h1>Telemetry: {{ filename }}</h1>
 
 <div class="trace">
+    <h2>Traces</h2>
     {% if resource_groups is defined and resource_groups|length > 0 %}
     {% for resource in resource_groups %}
     <div class="resource-block">
@@ -149,5 +184,266 @@
     </tr>
     {% endif %}
 </div>
+
+<div class="metric">
+    <h2>Metrics</h2>
+    {% if metric_groups is defined and metric_groups|length > 0 %}
+        {% for metric_resource in metric_groups %}
+            <div class="resource-block">
+                <fieldset style="margin-bottom: 16px;">
+                    <legend>Resource (Metrics)</legend>
+                    {% if metric_resource.attrs and metric_resource.attrs|length > 0 %}
+                        <ul>
+                            {% for attr in metric_resource.attrs %}
+                                <li><b>{{ attr.key }}</b>: {{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span>(none)</span>
+                    {% endif %}
+                </fieldset>
+
+                {% if metric_resource.scope_metrics_list %}
+                    {% for scope_metrics in metric_resource.scope_metrics_list %}
+                        <fieldset style="margin-bottom: 24px;">
+                            <legend>Scope: {{ scope_metrics.scope_attrs.name }} (Version: {{ scope_metrics.scope_attrs.version or 'N/A' }})</legend>
+                            {% if scope_metrics.scope_attrs.attributes %}
+                                <ul>
+                                    {% for attr in scope_metrics.scope_attrs.attributes %}
+                                        <li><b>{{ attr.key }}</b>: {{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+
+                            {% if scope_metrics.metrics %}
+                                {% set _earliest = [] %}
+                                {% for metric in scope_metrics.metrics %}
+                                    {% if metric.gauge and metric.gauge.dataPoints and metric.gauge.dataPoints|length > 0 %}
+                                        {% for dp in metric.gauge.dataPoints %}
+                                            {% set _ = _earliest.append(dp.timeUnixNano | int // 1000000) %}
+                                        {% endfor %}
+                                    {% elif metric.sum and metric.sum.dataPoints and metric.sum.dataPoints|length > 0 %}
+                                        {% for dp in metric.sum.dataPoints %}
+                                            {% set _ = _earliest.append(dp.timeUnixNano | int // 1000000) %}
+                                        {% endfor %}
+                                    {% elif metric.histogram and metric.histogram.dataPoints and metric.histogram.dataPoints|length > 0 %}
+                                        {% for dp in metric.histogram.dataPoints %}
+                                            {% set _ = _earliest.append(dp.timeUnixNano | int // 1000000) %}
+                                        {% endfor %}
+                                    {% elif metric.exponentialHistogram and metric.exponentialHistogram.dataPoints and metric.exponentialHistogram.dataPoints|length > 0 %}
+                                        {% for dp in metric.exponentialHistogram.dataPoints %}
+                                            {% set _ = _earliest.append(dp.timeUnixNano | int // 1000000) %}
+                                        {% endfor %}
+                                    {% elif metric.summary and metric.summary.dataPoints and metric.summary.dataPoints|length > 0 %}
+                                        {% for dp in metric.summary.dataPoints %}
+                                            {% set _ = _earliest.append(dp.timeUnixNano | int // 1000000) %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% set scope_earliest_time = (_earliest|min) if _earliest else None %}
+                                <h4>Metrics:{% if scope_earliest_time %} <span style="font-size:0.8em;color:#888;">({{ scope_earliest_time | datetimeformat }})</span>{% endif %}</h4>
+                                <ul>
+                                    {% for metric in scope_metrics.metrics %}
+                                        <li class="metric-item">
+                                            <span class="metric-name-toggle" onclick="toggleMetricPoints(this)"><b>{{ metric.name }}</b></span> (Unit: {{ metric.unit or 'N/A' }})
+                                            <div class="metric-points">
+                                                <ul>
+                                                    {% if metric.gauge %}
+                                                        <li class="metric-data-point">Gauge:
+                                                            {% if metric.gauge.dataPoints|length > 0 %}
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                    <thead>
+                                                                        <tr style="background-color: #f5f5f5;">
+                                                                            {% set sample_dp = metric.gauge.dataPoints[0] %}
+                                                                            {% if sample_dp.attributes %}
+                                                                                {% for attr in sample_dp.attributes %}
+                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                                {% endfor %}
+                                                                            {% endif %}
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Value</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for dp in metric.gauge.dataPoints %}
+                                                                            <tr>
+                                                                                {% if dp.attributes %}
+                                                                                    {% for attr in dp.attributes %}
+                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
+                                                                                    {% endfor %}
+                                                                                {% endif %}
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
+                                                                            </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% elif metric.sum %}
+                                                        <li class="metric-data-point">Sum (Monotonic: {{ metric.sum.isMonotonic }}, Aggregation: {{ metric.sum.aggregationTemporality }}):
+                                                            {% if metric.sum.dataPoints|length > 0 %}
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                    <thead>
+                                                                        <tr style="background-color: #f5f5f5;">
+                                                                            {% set sample_dp = metric.sum.dataPoints[0] %}
+                                                                            {% if sample_dp.attributes %}
+                                                                                {% for attr in sample_dp.attributes %}
+                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                                {% endfor %}
+                                                                            {% endif %}
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Value</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for dp in metric.sum.dataPoints %}
+                                                                            <tr>
+                                                                                {% if dp.attributes %}
+                                                                                    {% for attr in dp.attributes %}
+                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
+                                                                                    {% endfor %}
+                                                                                {% endif %}
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
+                                                                            </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% elif metric.histogram %}
+                                                        <li class="metric-data-point">Histogram (Aggregation: {{ metric.histogram.aggregationTemporality }}):
+                                                            {% if metric.histogram.dataPoints|length > 0 %}
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                    <thead>
+                                                                        <tr style="background-color: #f5f5f5;">
+                                                                            {% set sample_dp = metric.histogram.dataPoints[0] %}
+                                                                            {% if sample_dp.attributes %}
+                                                                                {% for attr in sample_dp.attributes %}
+                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                                {% endfor %}
+                                                                            {% endif %}
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Min</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Max</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Buckets</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for dp in metric.histogram.dataPoints %}
+                                                                            <tr>
+                                                                                {% if dp.attributes %}
+                                                                                    {% for attr in dp.attributes %}
+                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
+                                                                                    {% endfor %}
+                                                                                {% endif %}
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.min is defined %}{{ dp.min | round(2) if dp.min is number else dp.min }}{% else %}N/A{% endif %}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.max is defined %}{{ dp.max | round(2) if dp.max is number else dp.max }}{% else %}N/A{% endif %}</td>
+                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.bucketCounts %}{{ dp.bucketCounts }}{% if dp.explicitBounds %} ({{ dp.explicitBounds }}){% endif %}{% else %}N/A{% endif %}</td>
+                                                                            </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% elif metric.exponentialHistogram %}
+                                                        <li class="metric-data-point">Exponential Histogram (Aggregation: {{ metric.exponentialHistogram.aggregationTemporality }}):
+                                                            {% if metric.exponentialHistogram.dataPoints|length > 0 %}
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                    <thead>
+                                                                        <tr style="background-color: #f5f5f5;">
+                                                                            {% set sample_dp = metric.exponentialHistogram.dataPoints[0] %}
+                                                                            {% if sample_dp.attributes %}
+                                                                                {% for attr in sample_dp.attributes %}
+                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                                {% endfor %}
+                                                                            {% endif %}
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for dp in metric.exponentialHistogram.dataPoints %}
+                                                                            <tr>
+                                                                                {% if dp.attributes %}
+                                                                                    {% for attr in dp.attributes %}
+                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
+                                                                                    {% endfor %}
+                                                                                {% endif %}
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
+                                                                            </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% elif metric.summary %}
+                                                        <li class="metric-data-point">Summary:
+                                                            {% if metric.summary.dataPoints|length > 0 %}
+                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
+                                                                    <thead>
+                                                                        <tr style="background-color: #f5f5f5;">
+                                                                            {% set sample_dp = metric.summary.dataPoints[0] %}
+                                                                            {% if sample_dp.attributes %}
+                                                                                {% for attr in sample_dp.attributes %}
+                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                                {% endfor %}
+                                                                            {% endif %}
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
+                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Quantiles</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {% for dp in metric.summary.dataPoints %}
+                                                                            <tr>
+                                                                                {% if dp.attributes %}
+                                                                                    {% for attr in dp.attributes %}
+                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
+                                                                                    {% endfor %}
+                                                                                {% endif %}
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum }}</td>
+                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">
+                                                                                    {% if dp.quantileValues %}
+                                                                                        {% for qv in dp.quantileValues %}{{ qv.quantile }}: {{ qv.value | round(2) if qv.value is defined and qv.value is number else qv.value }}{% if not loop.last %}, {% endif %}{% endfor %}
+                                                                                    {% else %}N/A{% endif %}
+                                                                                </td>
+                                                                            </tr>
+                                                                        {% endfor %}
+                                                                    </tbody>
+                                                                </table>
+                                                            {% endif %}
+                                                        </li>
+                                                    {% else %}
+                                                        <li class="metric-data-point">Unknown metric type.</li>
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p><i>No metrics found for this scope.</i></p>
+                            {% endif %}
+                        </fieldset>
+                    {% endfor %}
+                {% else %}
+                    <p><i>No scopes found for this resource.</i></p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p><i>No metric data available.</i></p>
+    {% endif %}
+</div>
+
 </body>
+<script>
+function toggleMetricPoints(el) {
+    var item = el.closest('.metric-item');
+    item.classList.toggle('open');
+}
+</script>
 </html>
