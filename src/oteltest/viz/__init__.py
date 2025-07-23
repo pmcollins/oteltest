@@ -101,6 +101,14 @@ class VizApp:
     def __init__(self, trace_dir: str):
         self.trace_dir = Path(trace_dir)
         self.app = Flask(__name__)
+        # Register custom filter for datetime
+        def datetimeformat_filter(ts):
+            import datetime
+            try:
+                return datetime.datetime.fromtimestamp(int(ts) / 1000).strftime('%Y-%m-%d %H:%M:%S]]')
+            except Exception:
+                return str(ts)
+        self.app.jinja_env.filters['datetimeformat'] = datetimeformat_filter
         self.app.add_url_rule("/", "index", self.index)
         self.app.add_url_rule("/trace/<path:filename>", "view_telemetry", self.view_telemetry)
 
