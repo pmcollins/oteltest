@@ -118,6 +118,39 @@
             font-family: 'Courier New', monospace;
             font-variant-numeric: tabular-nums;
         }
+        
+        .tooltip {
+            position: relative;
+            cursor: help;
+            border-bottom: 1px dotted #666;
+        }
+        
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-left: 5px;
+        }
+        
+        .tooltip:hover::before {
+            content: "";
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: #333;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -126,6 +159,15 @@
 </div>
 
 <h1>Telemetry: {{ filename }}</h1>
+
+{% macro format_numeric_value(value) %}
+    {% if value is number %}
+        {% set rounded_value = value | round(0) %}
+        <span class="tooltip" data-tooltip="{{ value }}">{{ rounded_value | int }}</span>
+    {% else %}
+        {{ value }}
+    {% endif %}
+{% endmacro %}
 
 <div class="trace">
     <h2>Traces</h2>
@@ -271,7 +313,10 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">
+                                                                                    {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
+                                                                                    {{ format_numeric_value(raw_value) }}
+                                                                                </td>
                                                                             </tr>
                                                                         {% endfor %}
                                                                     </tbody>
@@ -301,7 +346,10 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) | round(2) if (dp.asDouble is defined and dp.asDouble is number) or (dp.asInt is defined and dp.asInt is number) else (dp.asDouble or dp.asInt) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">
+                                                                                    {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
+                                                                                    {{ format_numeric_value(raw_value) }}
+                                                                                </td>
                                                                             </tr>
                                                                         {% endfor %}
                                                                     </tbody>
@@ -335,10 +383,10 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.min is defined %}{{ dp.min | round(2) if dp.min is number else dp.min }}{% else %}N/A{% endif %}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.max is defined %}{{ dp.max | round(2) if dp.max is number else dp.max }}{% else %}N/A{% endif %}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.count) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.sum) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.min) if dp.min is defined else 'N/A' }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.max) if dp.max is defined else 'N/A' }}</td>
                                                                                 <td style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.bucketCounts %}{{ dp.bucketCounts }}{% if dp.explicitBounds %} ({{ dp.explicitBounds }}){% endif %}{% else %}N/A{% endif %}</td>
                                                                             </tr>
                                                                         {% endfor %}
@@ -370,8 +418,8 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count | round(2) if dp.count is defined and dp.count is number else dp.count }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum | round(2) if dp.sum is defined and dp.sum is number else dp.sum }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.count) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.sum) }}</td>
                                                                             </tr>
                                                                         {% endfor %}
                                                                     </tbody>
@@ -403,11 +451,11 @@
                                                                                         <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
                                                                                     {% endfor %}
                                                                                 {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.count }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ dp.sum }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.count) }}</td>
+                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.sum) }}</td>
                                                                                 <td style="border: 1px solid #ddd; padding: 4px 8px;">
                                                                                     {% if dp.quantileValues %}
-                                                                                        {% for qv in dp.quantileValues %}{{ qv.quantile }}: {{ qv.value | round(2) if qv.value is defined and qv.value is number else qv.value }}{% if not loop.last %}, {% endif %}{% endfor %}
+                                                                                        {% for qv in dp.quantileValues %}{{ qv.quantile }}: {{ format_numeric_value(qv.value) }}{% if not loop.last %}, {% endif %}{% endfor %}
                                                                                     {% else %}N/A{% endif %}
                                                                                 </td>
                                                                             </tr>
