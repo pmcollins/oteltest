@@ -317,15 +317,49 @@
                                                                         {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
                                                                     {% endfor %}
                                                                     {% set base_time = start_times | min if start_times else (metric.gauge.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
-                                                                    {% for dp in metric.gauge.dataPoints %}
-                                                                        <div style="font-family: monospace; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px dotted #eee;">
-                                                                            {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %} | 
-                                                                            {{ format_time_offset(dp.timeUnixNano, base_time) }} | 
-                                                                            {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
-                                                                            {{ format_numeric_value(raw_value) }} | 
-                                                                            {{ format_attributes(dp.attributes) }}
-                                                                        </div>
-                                                                    {% endfor %}
+                                                                    {% set attr_keys = [] %}
+                                                                    {% if metric.gauge.dataPoints|length > 0 and metric.gauge.dataPoints[0].attributes %}
+                                                                        {% for attr in metric.gauge.dataPoints[0].attributes %}
+                                                                            {% set _ = attr_keys.append(attr.key) %}
+                                                                        {% endfor %}
+                                                                    {% endif %}
+                                                                    <table style="border-collapse: collapse; font-family: monospace; font-size: 0.9em;">
+                                                                        <thead>
+                                                                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">From</th>
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">At</th>
+                                                                                <th style="padding: 3px 6px; text-align: right; font-weight: 600; color: #495057;">Value</th>
+                                                                                {% for key in attr_keys %}
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">{{ key }}</th>
+                                                                                {% endfor %}
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {% for dp in metric.gauge.dataPoints %}
+                                                                            <tr style="border-bottom: 1px solid #f8f9fa;">
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {{ format_time_offset(dp.timeUnixNano, base_time) }}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; text-align: right; font-weight: 500; color: #212529;">
+                                                                                    {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
+                                                                                    {{ format_numeric_value(raw_value) }}
+                                                                                </td>
+                                                                                {% for key in attr_keys %}
+                                                                                    <td style="padding: 2px 6px; color: #495057;">
+                                                                                        {% if dp.attributes %}
+                                                                                            {% for attr in dp.attributes %}
+                                                                                                {% if attr.key == key %}{{ attr.value.stringValue or attr.value.intValue or attr.value.doubleValue or attr.value.boolValue }}{% endif %}
+                                                                                            {% endfor %}
+                                                                                        {% endif %}
+                                                                                    </td>
+                                                                                {% endfor %}
+                                                                            </tr>
+                                                                            {% endfor %}
+                                                                        </tbody>
+                                                                    </table>
                                                                 </fieldset>
                                                             {% endif %}
                                                         </li>
@@ -339,15 +373,49 @@
                                                                         {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
                                                                     {% endfor %}
                                                                     {% set base_time = start_times | min if start_times else (metric.sum.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
-                                                                    {% for dp in metric.sum.dataPoints %}
-                                                                        <div style="font-family: monospace; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px dotted #eee;">
-                                                                            {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %} | 
-                                                                            {{ format_time_offset(dp.timeUnixNano, base_time) }} | 
-                                                                            {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
-                                                                            {{ format_numeric_value(raw_value) }} | 
-                                                                            {{ format_attributes(dp.attributes) }}
-                                                                        </div>
-                                                                    {% endfor %}
+                                                                    {% set attr_keys = [] %}
+                                                                    {% if metric.sum.dataPoints|length > 0 and metric.sum.dataPoints[0].attributes %}
+                                                                        {% for attr in metric.sum.dataPoints[0].attributes %}
+                                                                            {% set _ = attr_keys.append(attr.key) %}
+                                                                        {% endfor %}
+                                                                    {% endif %}
+                                                                    <table style="border-collapse: collapse; font-family: monospace; font-size: 0.9em;">
+                                                                        <thead>
+                                                                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">From</th>
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">At</th>
+                                                                                <th style="padding: 3px 6px; text-align: right; font-weight: 600; color: #495057;">Value</th>
+                                                                                {% for key in attr_keys %}
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">{{ key }}</th>
+                                                                                {% endfor %}
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {% for dp in metric.sum.dataPoints %}
+                                                                            <tr style="border-bottom: 1px solid #f8f9fa;">
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {{ format_time_offset(dp.timeUnixNano, base_time) }}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; text-align: right; font-weight: 500; color: #212529;">
+                                                                                    {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
+                                                                                    {{ format_numeric_value(raw_value) }}
+                                                                                </td>
+                                                                                {% for key in attr_keys %}
+                                                                                    <td style="padding: 2px 6px; color: #495057;">
+                                                                                        {% if dp.attributes %}
+                                                                                            {% for attr in dp.attributes %}
+                                                                                                {% if attr.key == key %}{{ attr.value.stringValue or attr.value.intValue or attr.value.doubleValue or attr.value.boolValue }}{% endif %}
+                                                                                            {% endfor %}
+                                                                                        {% endif %}
+                                                                                    </td>
+                                                                                {% endfor %}
+                                                                            </tr>
+                                                                            {% endfor %}
+                                                                        </tbody>
+                                                                    </table>
                                                                 </fieldset>
                                                             {% endif %}
                                                         </li>
