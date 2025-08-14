@@ -21,18 +21,13 @@
         a:hover {
             text-decoration: underline;
         }
-        .resource-block, .scope-block {
+        .resource-block {
             margin-bottom: 24px;
+            padding-left: 10px;
+            border-left: 2px solid #eee;
         }
-        fieldset {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 16px;
-        }
-        legend {
-            font-weight: bold;
-            padding: 0 10px;
-            font-size: 1.1em;
+        .scope-block {
+            margin-bottom: 24px;
         }
         .attributes-list {
             display: grid;
@@ -141,19 +136,19 @@
     {% if metric_groups is defined and metric_groups|length > 0 %}
         {% for metric_resource in metric_groups %}
             <div class="resource-block">
-                <fieldset>
-                    <legend>Resource</legend>
-                    {% if metric_resource.attrs and metric_resource.attrs|length > 0 %}
-                        <dl class="attributes-list">
-                            {% for attr in metric_resource.attrs %}
-                                <dt>{{ attr.key }}</dt>
-                                <dd>{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</dd>
-                            {% endfor %}
-                        </dl>
-                    {% else %}
-                        <span>(No resource attributes)</span>
-                    {% endif %}
-                </fieldset>
+                <div>
+                    <span class="metric-name">Resource</span>
+                </div>
+                {% if metric_resource.attrs and metric_resource.attrs|length > 0 %}
+                    <dl class="attributes-list">
+                        {% for attr in metric_resource.attrs %}
+                            <dt>{{ attr.key }}</dt>
+                            <dd>{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</dd>
+                        {% endfor %}
+                    </dl>
+                {% else %}
+                    <span>(No resource attributes)</span>
+                {% endif %}
             </div>
 
             {% if metric_resource.scope_metrics_list %}
