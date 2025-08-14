@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import copy
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
-from datetime import datetime
 
 from flask import Flask, render_template
 
@@ -16,6 +16,7 @@ def normalize_telemetry(telemetry: dict[str, Any]) -> dict[str, list]:
     metric_requests = telemetry.get("metric_requests", [])
     metrics = normalize_metrics(metric_requests)
     return {"traces": traces, "metrics": metrics}
+
 
 def normalize_metrics(metric_requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
     merged = {}
@@ -54,6 +55,7 @@ def normalize_metrics(metric_requests: list[dict[str, Any]]) -> list[dict[str, A
                         # If scope is new, add the entire scopeMetrics entry
                         existing_resource_metrics.setdefault("scopeMetrics", []).append(new_scope_metrics_entry)
     return list(merged.values())
+
 
 def normalize_traces(trace_requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
     merged = {}
@@ -101,11 +103,10 @@ class VizApp:
     def __init__(self, trace_dir: str):
         self.trace_dir = Path(trace_dir)
         self.app = Flask(__name__)
-       
+
         self.app.add_url_rule("/", "index", self.index)
         self.app.add_url_rule("/trace/<path:filename>", "view_telemetry", self.view_telemetry)
         self.app.add_url_rule("/metric/<path:filename>", "view_metrics", self.view_metrics)
-
 
         self.app.jinja_env.filters['datetimeformat'] = self.datetimeformat_filter
 
@@ -114,7 +115,7 @@ class VizApp:
             return datetime.fromtimestamp(int(ts) / 1000).strftime('%Y-%m-%d %H:%M')
         except Exception:
             return str(ts)
-        
+
     def run(self, **kwargs):
         self.app.run(**kwargs)
 
@@ -122,12 +123,11 @@ class VizApp:
         json_files = self._get_trace_files()
         return render_template("index.html", files=json_files)
 
-    
     def process_traces(self, traces: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int, int]:
         resource_groups = []
         min_start = None
         max_end = None
-        
+
         for resource_span in traces:
             resource_attrs = resource_span.get("resource", {}).get("attributes", [])
             # Collect all spans for this resource
@@ -157,19 +157,66 @@ class VizApp:
             max_end = 0
 
         return resource_groups, min_start, max_end
-    
+
     def process_metrics(self, metrics: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        metric_groups = [] 
-        for resource_metrics in metrics: 
+        metric_groups = []
+        for resource_metrics in metrics:
             resource_attrs = resource_metrics.get("resource", {}).get("attributes", [])
             scope_metrics_list = []
             for scope_metric in resource_metrics.get("scopeMetrics", []):
                 scope_attrs = scope_metric.get("scope", {})
-                metrics_data = scope_metric.get("metrics", [])
-                scope_metrics_list.append({"scope_attrs": scope_attrs, "metrics": metrics_data})
+                processed_metrics_data = []
+                for metric in scope_metric.get("metrics", []):
+                    data_points = (
+                        metric.get("gauge", {}).get("dataPoints") or
+                        metric.get("sum", {}).get("dataPoints") or
+                        metric.get("histogram", {}).get("dataPoints") or
+                        metric.get("exponentialHistogram", {}).get("dataPoints") or
+                        metric.get("summary", {}).get("dataPoints") or
+                        []
+                    )
+
+                    if not data_points:
+                        processed_metrics_data.append({**metric, 'table': None})
+                        continue
+
+                    all_keys = set()
+                    for dp in data_points:
+                        for attr in dp.get("attributes", []):
+                            all_keys.add(attr["key"])
+                    sorted_keys = sorted(list(all_keys))
+
+                    headers = ["Timestamp", "Value"] + sorted_keys
+
+                    rows = []
+                    for dp in data_points:
+                        dp_attrs = {attr["key"]: next(iter(attr.get("value", {}).values())) for attr in
+                                    dp.get("attributes", [])}
+
+                        value = None
+                        if 'asDouble' in dp:
+                            value = dp['asDouble']
+                        elif 'asInt' in dp:
+                            value = dp['asInt']
+
+                        rows.append({
+                            "timestamp": dp.get("timeUnixNano"),
+                            "value": value,
+                            "attributes": {key: dp_attrs.get(key, '') for key in sorted_keys}
+                        })
+
+                    processed_metrics_data.append({
+                        **metric,
+                        'table': {
+                            'headers': headers,
+                            'rows': rows,
+                            'sorted_keys': sorted_keys
+                        }
+                    })
+                scope_metrics_list.append({"scope_attrs": scope_attrs, "metrics": processed_metrics_data})
             metric_groups.append({"attrs": resource_attrs, "scope_metrics_list": scope_metrics_list})
         return metric_groups
-    
+
     def view_telemetry(self, filename):
         file_path = self.trace_dir / filename
         data = self._load_trace_file(str(file_path))
@@ -177,7 +224,8 @@ class VizApp:
         merged = normalize_telemetry(data)
         resource_groups, min_start, max_end = self.process_traces(merged["traces"])
 
-        return render_template("trace.html",filename=filename, resource_groups=resource_groups, min_start=min_start, max_end=max_end)
+        return render_template("trace.html", filename=filename, resource_groups=resource_groups, min_start=min_start,
+                               max_end=max_end)
 
     def view_metrics(self, filename):
         file_path = self.trace_dir / filename
@@ -186,7 +234,7 @@ class VizApp:
         merged = normalize_telemetry(data)
         metric_groups = self.process_metrics(merged["metrics"])
 
-        return render_template("metric.html",filename=filename, metric_groups=metric_groups)
+        return render_template("metric.html", filename=filename, metric_groups=metric_groups)
 
     def _get_trace_files(self):
         return sorted([f.name for f in self.trace_dir.glob("*.json")])

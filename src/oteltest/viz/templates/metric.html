@@ -160,54 +160,34 @@
                                         <span class="metric-name">{{ metric.name }}</span>
                                         <span class="metric-details"> ({{ metric.unit or 'no unit' }})</span>
                                     </div>
-                                    {% set data_points = metric['gauge']['dataPoints'] if 'gauge' in metric and metric.gauge and 'dataPoints' in metric.gauge else
-                                                       metric['sum']['dataPoints'] if 'sum' in metric and metric.sum and 'dataPoints' in metric.sum else
-                                                       metric['histogram']['dataPoints'] if 'histogram' in metric and metric.histogram and 'dataPoints' in metric.histogram else
-                                                       metric['exponentialHistogram']['dataPoints'] if 'exponentialHistogram' in metric and metric.exponentialHistogram and 'dataPoints' in metric.exponentialHistogram else
-                                                       metric['summary']['dataPoints'] if 'summary' in metric and metric.summary and 'dataPoints' in metric.summary else [] %}
-                                    {% if data_points %}
-                                        {% set ns = namespace(keys={}) %}
-                                        {% for dp in data_points %}
-                                            {% for attr in dp.attributes %}
-                                                {% if attr.key not in ns.keys %}
-                                                    {% set _ = ns.keys.update({attr.key: true}) %}
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endfor %}
-                                        {% set sorted_keys = ns.keys.keys()|list|sort %}
+                                    {% if metric.table %}
                                         <table class="data-points-table">
                                             <thead>
                                                 <tr>
-                                                    <th class="col-timestamp">Timestamp</th>
-                                                    <th class="col-value">Value</th>
-                                                    {% for key in sorted_keys %}
-                                                        <th class="col-attribute" title="{{ key }}">{{ key }}</th>
+                                                    {% for header in metric.table.headers %}
+                                                        {% if header == 'Timestamp' %}
+                                                            <th class="col-timestamp">{{ header }}</th>
+                                                        {% elif header == 'Value' %}
+                                                            <th class="col-value">{{ header }}</th>
+                                                        {% else %}
+                                                            <th class="col-attribute" title="{{ header }}">{{ header }}</th>
+                                                        {% endif %}
                                                     {% endfor %}
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {% set ns_ts = namespace(last_timestamp=None) %}
-                                                {% for dp in data_points %}
-                                                    {% set dp_attrs = {} %}
-                                                    {% for attr in dp.attributes %}
-                                                        {% set _ = dp_attrs.update({attr.key: attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or ''}) %}
-                                                    {% endfor %}
+                                                {% for row in metric.table.rows %}
                                                     <tr>
-                                                        {% if ns_ts.last_timestamp == dp.timeUnixNano %}
+                                                        {% if ns_ts.last_timestamp == row.timestamp %}
                                                             <td class="col-timestamp"></td>
                                                         {% else %}
-                                                            <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ dp.timeUnixNano }}">{{ dp.timeUnixNano }}</span></td>
-                                                            {% set ns_ts.last_timestamp = dp.timeUnixNano %}
+                                                            <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ row.timestamp }}">{{ row.timestamp }}</span></td>
+                                                            {% set ns_ts.last_timestamp = row.timestamp %}
                                                         {% endif %}
-                                                        <td class="col-value">
-                                                            {%- if 'asDouble' in dp -%}
-                                                                {{ dp.asDouble }}
-                                                            {%- elif 'asInt' in dp -%}
-                                                                {{ dp.asInt }}
-                                                            {%- endif -%}
-                                                        </td>
-                                                        {% for key in sorted_keys %}
-                                                            {% set val = dp_attrs.get(key, '') %}
+                                                        <td class="col-value">{{ row.value if row.value is not none else '' }}</td>
+                                                        {% for key in metric.table.sorted_keys %}
+                                                            {% set val = row.attributes.get(key, '') %}
                                                             <td class="col-attribute" title="{{ val }}">{{ val }}</td>
                                                         {% endfor %}
                                                     </tr>
