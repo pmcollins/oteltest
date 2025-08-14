@@ -161,7 +161,6 @@
                                 <div class="metric-item">
                                     <div class="metric-header">
                                         <span class="metric-name">{{ metric.name }}</span>
-                                        <span class="metric-details"> ({{ metric.unit or 'no unit' }})</span>
                                     </div>
                                     {% if metric.table %}
                                         <table class="data-points-table">
@@ -171,7 +170,7 @@
                                                         {% if header == 'Timestamp' %}
                                                             <th class="col-timestamp"></th>
                                                         {% elif header == 'Value' %}
-                                                            <th class="col-value">{{ header }}</th>
+                                                            <th class="col-value">({{ metric.unit or 'no unit' }})</th>
                                                         {% else %}
                                                             <th class="col-attribute" title="{{ header }}">{{ header }}</th>
                                                         {% endif %}
