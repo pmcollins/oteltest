@@ -52,7 +52,7 @@
         }
         .metric-item {
             margin-bottom: 15px;
-            padding-left: 20px;
+            padding-left: 10px;
             border-left: 2px solid #eee;
         }
         .metric-header {
@@ -87,10 +87,18 @@
         .data-points-table th.col-value,
         .data-points-table td.col-value {
             width: 150px;
+            max-width: 150px;
             text-align: right !important;
         }
-        .col-timestamp { width: 220px; }
-        .col-attribute { width: 40px; }
+        .data-points-table .col-timestamp {
+            width: 220px;
+            max-width: 220px;
+            padding-left: 0;
+        }
+        .data-points-table .col-attribute {
+            width: 60px;
+            max-width: 60px;
+        }
 
         .data-points-table th {
             font-weight: bold;
@@ -185,7 +193,7 @@
                                                             <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ row.timestamp }}">{{ row.timestamp }}</span></td>
                                                             {% set ns_ts.last_timestamp = row.timestamp %}
                                                         {% endif %}
-                                                        <td class="col-value">{{ row.value if row.value is not none else '' }}</td>
+                                                        <td class="col-value" title="{{ row.value if row.value is not none else '' }}">{{ row.value if row.value is not none else '' }}</td>
                                                         {% for key in metric.table.sorted_keys %}
                                                             {% set val = row.attributes.get(key, '') %}
                                                             <td class="col-attribute" title="{{ val }}">{{ val }}</td>
