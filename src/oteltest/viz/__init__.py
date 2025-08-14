@@ -104,8 +104,9 @@ class VizApp:
        
         self.app.add_url_rule("/", "index", self.index)
         self.app.add_url_rule("/trace/<path:filename>", "view_telemetry", self.view_telemetry)
-        
-       
+        self.app.add_url_rule("/metric/<path:filename>", "view_metrics", self.view_metrics)
+
+
         self.app.jinja_env.filters['datetimeformat'] = self.datetimeformat_filter
 
     def datetimeformat_filter(self, ts):
@@ -175,9 +176,17 @@ class VizApp:
 
         merged = normalize_telemetry(data)
         resource_groups, min_start, max_end = self.process_traces(merged["traces"])
+
+        return render_template("trace.html",filename=filename, resource_groups=resource_groups, min_start=min_start, max_end=max_end)
+
+    def view_metrics(self, filename):
+        file_path = self.trace_dir / filename
+        data = self._load_trace_file(str(file_path))
+
+        merged = normalize_telemetry(data)
         metric_groups = self.process_metrics(merged["metrics"])
 
-        return render_template("trace.html",filename=filename, resource_groups=resource_groups, metric_groups=metric_groups, min_start=min_start, max_end=max_end)
+        return render_template("metric.html",filename=filename, metric_groups=metric_groups)
 
     def _get_trace_files(self):
         return sorted([f.name for f in self.trace_dir.glob("*.json")])
@@ -218,4 +227,3 @@ class VizApp:
                 root_spans.append(span)
 
         return root_spans
-

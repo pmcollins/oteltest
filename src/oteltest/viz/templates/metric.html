@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Telemetry: {{ filename }}</title>
+    <style>
+        body {
+            font-family: monospace;
+            margin: 40px;
+            font-size: 14px;
+        }
+        h1, h2, h3, h4 {
+            color: #333;
+        }
+        .back {
+            margin-bottom: 20px;
+        }
+        a {
+            color: blue;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .resource-block, .scope-block {
+            margin-bottom: 24px;
+        }
+        fieldset {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 16px;
+        }
+        legend {
+            font-weight: bold;
+            padding: 0 10px;
+            font-size: 1.1em;
+        }
+        .attributes-list {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            gap: 5px 10px;
+            padding-left: 0;
+            list-style: none;
+        }
+        .attributes-list dt {
+            font-weight: bold;
+            grid-column: 1;
+        }
+        .attributes-list dd {
+            grid-column: 2;
+            margin-left: 0;
+            word-break: break-all;
+        }
+        .metric-item {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            border-left: 2px solid #eee;
+        }
+        .metric-header {
+            cursor: pointer;
+        }
+        .metric-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .metric-value {
+            display: inline-block;
+            width: 150px;
+            text-align: right;
+            padding-right: 10px;
+        }
+        .metric-details {
+            color: #555;
+        }
+        .data-points {
+            display: none;
+            padding-left: 20px;
+            margin-top: 10px;
+            list-style-type: none;
+        }
+        .metric-item.open .data-points {
+            display: block;
+        }
+        .data-point {
+            margin-bottom: 10px;
+        }
+        .data-point-attributes {
+            display: none;
+            padding-left: 20px;
+        }
+        .data-point.open .data-point-attributes {
+            display: block;
+        }
+        .toggle {
+            cursor: pointer;
+            font-family: monospace;
+        }
+        .toggle-all {
+            cursor: pointer;
+            color: gray;
+            text-decoration: none;
+            font-family: monospace;
+            margin-left: 10px;
+        }
+        .toggle-all:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        function toggleDetails(element) {
+            const parent = element.closest('.metric-item, .data-point');
+            if (parent) {
+                parent.classList.toggle('open');
+                const toggle = element.querySelector('.toggle');
+                if (toggle) {
+                    toggle.textContent = parent.classList.contains('open') ? '▾' : '▸';
+                }
+            }
+        }
+
+        function toggleAll(element) {
+            const metricItem = element.closest('.metric-item');
+            if (!metricItem) return;
+
+            const isOpen = element.textContent === '[-]';
+            const dataPoints = metricItem.querySelectorAll('.data-point');
+
+            if (isOpen) { // then close them all
+                element.textContent = '[+]';
+                dataPoints.forEach(dp => {
+                    dp.classList.remove('open');
+                    const toggleElement = dp.querySelector('div > .toggle');
+                    if(toggleElement) toggleElement.textContent = '▸';
+                });
+            } else { // then open them all
+                element.textContent = '[-]';
+                if (!metricItem.classList.contains('open')) {
+                    metricItem.classList.add('open');
+                    const mainToggle = metricItem.querySelector('.metric-header > .toggle');
+                    if (mainToggle) {
+                        mainToggle.textContent = '▾';
+                    }
+                }
+                dataPoints.forEach(dp => {
+                    dp.classList.add('open');
+                    const toggleElement = dp.querySelector('div > .toggle');
+                    if(toggleElement) toggleElement.textContent = '▾';
+                });
+            }
+        }
+
+        function formatNanoTimestamp(nano) {
+            const date = new Date(nano / 1000000);
+            return date.toLocaleString() + '.' + (nano % 1000000).toString().padStart(6, '0').substr(0,3);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const timestamps = document.querySelectorAll('.timestamp');
+            timestamps.forEach(function(ts) {
+                const nano = ts.getAttribute('data-timestamp-nano');
+                if (nano) {
+                    ts.textContent = formatNanoTimestamp(parseInt(nano, 10));
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<div class="back">
+    <a href="/">← Back to file list</a>
+</div>
+
+<h1>Telemetry: {{ filename }}</h1>
+
+<div class="metrics-container">
+    <h2>Metrics</h2>
+    {% if metric_groups is defined and metric_groups|length > 0 %}
+        {% for metric_resource in metric_groups %}
+            <div class="resource-block">
+                <fieldset>
+                    <legend>Resource</legend>
+                    {% if metric_resource.attrs and metric_resource.attrs|length > 0 %}
+                        <dl class="attributes-list">
+                            {% for attr in metric_resource.attrs %}
+                                <dt>{{ attr.key }}</dt>
+                                <dd>{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</dd>
+                            {% endfor %}
+                        </dl>
+                    {% else %}
+                        <span>(No resource attributes)</span>
+                    {% endif %}
+                </fieldset>
+            </div>
+
+            {% if metric_resource.scope_metrics_list %}
+                {% for scope_metrics in metric_resource.scope_metrics_list %}
+                    <div class="scope-block">
+                        <h3>{{ scope_metrics.scope_attrs.name or 'Default Scope' }} <span class="metric-details">(v{{ scope_metrics.scope_attrs.version or 'N/A' }})</span></h3>
+
+                        {% if scope_metrics.metrics %}
+                            {% for metric in scope_metrics.metrics %}
+                                <div class="metric-item">
+                                    <div class="metric-header" onclick="toggleDetails(this)">
+                                        <span class="toggle">▸</span> <span class="metric-name">{{ metric.name }}</span>
+                                        <span class="metric-details"> ({{ metric.unit or 'no unit' }})</span>
+                                        <span class="toggle-all" onclick="event.stopPropagation(); toggleAll(this);">[+]</span>
+                                    </div>
+                                    <ul class="data-points">
+                                        {% set data_points = metric['gauge']['dataPoints'] if 'gauge' in metric and metric.gauge and 'dataPoints' in metric.gauge else
+                                                           metric['sum']['dataPoints'] if 'sum' in metric and metric.sum and 'dataPoints' in metric.sum else
+                                                           metric['histogram']['dataPoints'] if 'histogram' in metric and metric.histogram and 'dataPoints' in metric.histogram else
+                                                           metric['exponentialHistogram']['dataPoints'] if 'exponentialHistogram' in metric and metric.exponentialHistogram and 'dataPoints' in metric.exponentialHistogram else
+                                                           metric['summary']['dataPoints'] if 'summary' in metric and metric.summary and 'dataPoints' in metric.summary else [] %}
+                                        {% if data_points %}
+
+                                            {% for dp in data_points %}
+                                                <li class="data-point">
+                                                    <div onclick="toggleDetails(this)">
+                                                        <span class="toggle">▸</span>
+                                                        <span class="metric-value">{{ dp.asDouble or dp.asInt }}</span>
+                                                        <span class="metric-details">at <span class="timestamp" data-timestamp-nano="{{ dp.timeUnixNano }}">{{ dp.timeUnixNano }}</span></span>
+                                                    </div>
+                                                    {% if dp.attributes %}
+                                                    <div class="data-point-attributes">
+                                                        <dl class="attributes-list">
+                                                            {% for attr in dp.attributes %}
+                                                                <dt>{{ attr.key }}</dt>
+                                                                <dd>{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</dd>
+                                                            {% endfor %}
+                                                        </dl>
+                                                    </div>
+                                                    {% endif %}
+                                                </li>
+                                            {% endfor %}
+
+                                        {% else %}
+                                            <li>No data points for this metric.</li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p>No metrics in this scope.</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No scope metrics in this resource.</p>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+        <p>No metric data available.</p>
+    {% endif %}
+</div>
+
+</body>
+</html>

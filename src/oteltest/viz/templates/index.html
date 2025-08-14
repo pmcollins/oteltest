@@ -15,10 +15,8 @@
     <h1>Telemetry</h1>
     <ul>
         {% for file in files %}
-        <li><a href="/trace/{{ file }}">{{ file }}</a></li>
+        <li>{{ file }} [<a href="/trace/{{ file }}">traces</a>] [<a href="/metric/{{ file }}">metrics</a>]</li>
         {% endfor %}
     </ul>
-  
-    
 </body>
 </html>
