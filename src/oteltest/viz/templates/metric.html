@@ -186,14 +186,26 @@
                                                 </tr>
                                             </thead>
                                             <tbody>
+                                                {% set ns_ts = namespace(last_timestamp=None) %}
                                                 {% for dp in data_points %}
                                                     {% set dp_attrs = {} %}
                                                     {% for attr in dp.attributes %}
                                                         {% set _ = dp_attrs.update({attr.key: attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or ''}) %}
                                                     {% endfor %}
                                                     <tr>
-                                                        <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ dp.timeUnixNano }}">{{ dp.timeUnixNano }}</span></td>
-                                                        <td class="col-value">{{ dp.asDouble or dp.asInt }}</td>
+                                                        {% if ns_ts.last_timestamp == dp.timeUnixNano %}
+                                                            <td class="col-timestamp"></td>
+                                                        {% else %}
+                                                            <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ dp.timeUnixNano }}">{{ dp.timeUnixNano }}</span></td>
+                                                            {% set ns_ts.last_timestamp = dp.timeUnixNano %}
+                                                        {% endif %}
+                                                        <td class="col-value">
+                                                            {%- if 'asDouble' in dp -%}
+                                                                {{ dp.asDouble }}
+                                                            {%- elif 'asInt' in dp -%}
+                                                                {{ dp.asInt }}
+                                                            {%- endif -%}
+                                                        </td>
                                                         {% for key in sorted_keys %}
                                                             {% set val = dp_attrs.get(key, '') %}
                                                             <td class="col-attribute" title="{{ val }}">{{ val }}</td>
