@@ -71,83 +71,40 @@
         .metric-details {
             color: #555;
         }
+        .data-points-table {
+            border-collapse: collapse;
+            margin-top: 10px;
+            table-layout: fixed;
+            width: auto;
+        }
+        .data-points-table th, .data-points-table td {
+            text-align: left;
+            padding: 2px 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .data-points-table th.col-value,
+        .data-points-table td.col-value {
+            width: 150px;
+            text-align: right !important;
+        }
+        .col-timestamp { width: 220px; }
+        .col-attribute { width: 40px; }
+
+        .data-points-table th {
+            font-weight: bold;
+        }
         .data-points {
-            display: none;
             padding-left: 20px;
             margin-top: 10px;
             list-style-type: none;
         }
-        .metric-item.open .data-points {
-            display: block;
-        }
         .data-point {
             margin-bottom: 10px;
         }
-        .data-point-attributes {
-            display: none;
-            padding-left: 20px;
-        }
-        .data-point.open .data-point-attributes {
-            display: block;
-        }
-        .toggle {
-            cursor: pointer;
-            font-family: monospace;
-        }
-        .toggle-all {
-            cursor: pointer;
-            color: gray;
-            text-decoration: none;
-            font-family: monospace;
-            margin-left: 10px;
-        }
-        .toggle-all:hover {
-            text-decoration: underline;
-        }
     </style>
     <script>
-        function toggleDetails(element) {
-            const parent = element.closest('.metric-item, .data-point');
-            if (parent) {
-                parent.classList.toggle('open');
-                const toggle = element.querySelector('.toggle');
-                if (toggle) {
-                    toggle.textContent = parent.classList.contains('open') ? '▾' : '▸';
-                }
-            }
-        }
-
-        function toggleAll(element) {
-            const metricItem = element.closest('.metric-item');
-            if (!metricItem) return;
-
-            const isOpen = element.textContent === '[-]';
-            const dataPoints = metricItem.querySelectorAll('.data-point');
-
-            if (isOpen) { // then close them all
-                element.textContent = '[+]';
-                dataPoints.forEach(dp => {
-                    dp.classList.remove('open');
-                    const toggleElement = dp.querySelector('div > .toggle');
-                    if(toggleElement) toggleElement.textContent = '▸';
-                });
-            } else { // then open them all
-                element.textContent = '[-]';
-                if (!metricItem.classList.contains('open')) {
-                    metricItem.classList.add('open');
-                    const mainToggle = metricItem.querySelector('.metric-header > .toggle');
-                    if (mainToggle) {
-                        mainToggle.textContent = '▾';
-                    }
-                }
-                dataPoints.forEach(dp => {
-                    dp.classList.add('open');
-                    const toggleElement = dp.querySelector('div > .toggle');
-                    if(toggleElement) toggleElement.textContent = '▾';
-                });
-            }
-        }
-
         function formatNanoTimestamp(nano) {
             const date = new Date(nano / 1000000);
             return date.toLocaleString() + '.' + (nano % 1000000).toString().padStart(6, '0').substr(0,3);
@@ -199,43 +156,57 @@
                         {% if scope_metrics.metrics %}
                             {% for metric in scope_metrics.metrics %}
                                 <div class="metric-item">
-                                    <div class="metric-header" onclick="toggleDetails(this)">
-                                        <span class="toggle">▸</span> <span class="metric-name">{{ metric.name }}</span>
+                                    <div class="metric-header">
+                                        <span class="metric-name">{{ metric.name }}</span>
                                         <span class="metric-details"> ({{ metric.unit or 'no unit' }})</span>
-                                        <span class="toggle-all" onclick="event.stopPropagation(); toggleAll(this);">[+]</span>
                                     </div>
-                                    <ul class="data-points">
-                                        {% set data_points = metric['gauge']['dataPoints'] if 'gauge' in metric and metric.gauge and 'dataPoints' in metric.gauge else
-                                                           metric['sum']['dataPoints'] if 'sum' in metric and metric.sum and 'dataPoints' in metric.sum else
-                                                           metric['histogram']['dataPoints'] if 'histogram' in metric and metric.histogram and 'dataPoints' in metric.histogram else
-                                                           metric['exponentialHistogram']['dataPoints'] if 'exponentialHistogram' in metric and metric.exponentialHistogram and 'dataPoints' in metric.exponentialHistogram else
-                                                           metric['summary']['dataPoints'] if 'summary' in metric and metric.summary and 'dataPoints' in metric.summary else [] %}
-                                        {% if data_points %}
-
-                                            {% for dp in data_points %}
-                                                <li class="data-point">
-                                                    <div onclick="toggleDetails(this)">
-                                                        <span class="toggle">▸</span>
-                                                        <span class="metric-value">{{ dp.asDouble or dp.asInt }}</span>
-                                                        <span class="metric-details">at <span class="timestamp" data-timestamp-nano="{{ dp.timeUnixNano }}">{{ dp.timeUnixNano }}</span></span>
-                                                    </div>
-                                                    {% if dp.attributes %}
-                                                    <div class="data-point-attributes">
-                                                        <dl class="attributes-list">
-                                                            {% for attr in dp.attributes %}
-                                                                <dt>{{ attr.key }}</dt>
-                                                                <dd>{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</dd>
-                                                            {% endfor %}
-                                                        </dl>
-                                                    </div>
-                                                    {% endif %}
-                                                </li>
+                                    {% set data_points = metric['gauge']['dataPoints'] if 'gauge' in metric and metric.gauge and 'dataPoints' in metric.gauge else
+                                                       metric['sum']['dataPoints'] if 'sum' in metric and metric.sum and 'dataPoints' in metric.sum else
+                                                       metric['histogram']['dataPoints'] if 'histogram' in metric and metric.histogram and 'dataPoints' in metric.histogram else
+                                                       metric['exponentialHistogram']['dataPoints'] if 'exponentialHistogram' in metric and metric.exponentialHistogram and 'dataPoints' in metric.exponentialHistogram else
+                                                       metric['summary']['dataPoints'] if 'summary' in metric and metric.summary and 'dataPoints' in metric.summary else [] %}
+                                    {% if data_points %}
+                                        {% set ns = namespace(keys={}) %}
+                                        {% for dp in data_points %}
+                                            {% for attr in dp.attributes %}
+                                                {% if attr.key not in ns.keys %}
+                                                    {% set _ = ns.keys.update({attr.key: true}) %}
+                                                {% endif %}
                                             {% endfor %}
-
-                                        {% else %}
+                                        {% endfor %}
+                                        {% set sorted_keys = ns.keys.keys()|list|sort %}
+                                        <table class="data-points-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-timestamp">Timestamp</th>
+                                                    <th class="col-value">Value</th>
+                                                    {% for key in sorted_keys %}
+                                                        <th class="col-attribute" title="{{ key }}">{{ key }}</th>
+                                                    {% endfor %}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for dp in data_points %}
+                                                    {% set dp_attrs = {} %}
+                                                    {% for attr in dp.attributes %}
+                                                        {% set _ = dp_attrs.update({attr.key: attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or ''}) %}
+                                                    {% endfor %}
+                                                    <tr>
+                                                        <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ dp.timeUnixNano }}">{{ dp.timeUnixNano }}</span></td>
+                                                        <td class="col-value">{{ dp.asDouble or dp.asInt }}</td>
+                                                        {% for key in sorted_keys %}
+                                                            {% set val = dp_attrs.get(key, '') %}
+                                                            <td class="col-attribute" title="{{ val }}">{{ val }}</td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <ul class="data-points">
                                             <li>No data points for this metric.</li>
-                                        {% endif %}
-                                    </ul>
+                                        </ul>
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                         {% else %}
