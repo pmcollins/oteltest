@@ -29,6 +29,9 @@
         .scope-block {
             margin-bottom: 24px;
         }
+        .scope-header {
+            cursor: pointer;
+        }
         .attributes-list {
             display: grid;
             grid-template-columns: max-content 1fr;
@@ -53,18 +56,15 @@
         .metric-header {
             cursor: pointer;
         }
+        .metric-content {
+            display: none;
+        }
         .metric-name {
             font-weight: bold;
             font-size: 1.1em;
         }
-        .metric-value {
-            display: inline-block;
-            width: 150px;
-            text-align: right;
-            padding-right: 10px;
-        }
         .metric-details {
-            color: #555;
+            color: #999;
         }
         .data-points-table {
             border-collapse: collapse;
@@ -103,9 +103,6 @@
             margin-top: 10px;
             list-style-type: none;
         }
-        .data-point {
-            margin-bottom: 10px;
-        }
     </style>
     <script>
         function formatNanoTimestamp(nano) {
@@ -120,6 +117,30 @@
                 if (nano) {
                     ts.textContent = formatNanoTimestamp(parseInt(nano, 10));
                 }
+            });
+
+            const metricHeaders = document.querySelectorAll('.metric-header');
+            metricHeaders.forEach(function(header) {
+                header.addEventListener('click', function() {
+                    const content = this.nextElementSibling;
+                    if (content.style.display === 'none' || content.style.display === '') {
+                        content.style.display = 'block';
+                    } else {
+                        content.style.display = 'none';
+                    }
+                });
+            });
+
+            const scopeHeaders = document.querySelectorAll('.scope-header');
+            scopeHeaders.forEach(function(header) {
+                header.addEventListener('click', function() {
+                    const metricContents = this.parentElement.querySelectorAll('.metric-content');
+                    // Toggle based on the state of the first metric in the scope
+                    const shouldExpand = metricContents.length > 0 && (metricContents[0].style.display === 'none' || metricContents[0].style.display === '');
+                    metricContents.forEach(function(content) {
+                        content.style.display = shouldExpand ? 'block' : 'none';
+                    });
+                });
             });
         });
     </script>
@@ -154,14 +175,20 @@
             {% if metric_resource.scope_metrics_list %}
                 {% for scope_metrics in metric_resource.scope_metrics_list %}
                     <div class="scope-block">
-                        <h3>{{ scope_metrics.scope_attrs.name or 'Default Scope' }} <span class="metric-details">(v{{ scope_metrics.scope_attrs.version or 'N/A' }})</span></h3>
+                        <h3 class="scope-header">{{ scope_metrics.scope_attrs.name or 'Default Scope' }} <span class="metric-details">(v{{ scope_metrics.scope_attrs.version or 'N/A' }})</span></h3>
 
                         {% if scope_metrics.metrics %}
                             {% for metric in scope_metrics.metrics %}
                                 <div class="metric-item">
                                     <div class="metric-header">
                                         <span class="metric-name">{{ metric.name }}</span>
+                                        {% if metric.table and metric.table.rows %}
+                                            <span class="metric-details">{{ metric.table.rows|length }}</span>
+                                        {% else %}
+                                            <span class="metric-details">0</span>
+                                        {% endif %}
                                     </div>
+                                    <div class="metric-content">
                                     {% if metric.table %}
                                         <table class="data-points-table">
                                             <thead>
@@ -201,6 +228,7 @@
                                             <li>No data points for this metric.</li>
                                         </ul>
                                     {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         {% else %}
