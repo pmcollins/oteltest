@@ -156,7 +156,8 @@ class HttpSink:
         self.listener.handle_logs(req, headers)
 
     def stop(self):
-        self.httpd.shutdown()
+        if self.httpd:
+            self.httpd.shutdown()
         self.svr_thread.join()
 
 
