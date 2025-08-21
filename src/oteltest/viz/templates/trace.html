@@ -169,6 +169,23 @@
     {% endif %}
 {% endmacro %}
 
+{% macro format_time_offset(timestamp_nano, base_timestamp_nano) %}
+    {% if timestamp_nano and base_timestamp_nano %}
+        {% set offset_ms = ((timestamp_nano | int) - (base_timestamp_nano | int)) // 1000000 %}
+        {{ offset_ms }}ms
+    {% else %}
+        0ms
+    {% endif %}
+{% endmacro %}
+
+{% macro format_attributes(attributes) %}
+    {% if attributes %}
+        {% for attr in attributes %}{{ attr.key }}: {{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}{% if not loop.last %}, {% endif %}{% endfor %}
+    {% else %}
+        (no attributes)
+    {% endif %}
+{% endmacro %}
+
 <div class="trace">
     <h2>Traces</h2>
     {% if resource_groups is defined and resource_groups|length > 0 %}
@@ -293,175 +310,190 @@
                                                     {% if metric.gauge %}
                                                         <li class="metric-data-point">Gauge:
                                                             {% if metric.gauge.dataPoints|length > 0 %}
-                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
-                                                                    <thead>
-                                                                        <tr style="background-color: #f5f5f5;">
-                                                                            {% set sample_dp = metric.gauge.dataPoints[0] %}
-                                                                            {% if sample_dp.attributes %}
-                                                                                {% for attr in sample_dp.attributes %}
-                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                <fieldset style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                                                                    <legend style="font-weight: bold; font-size: 0.9em; padding: 0 5px;">Data Points</legend>
+                                                                    {% set start_times = [] %}
+                                                                    {% for dp in metric.gauge.dataPoints %}
+                                                                        {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
+                                                                    {% endfor %}
+                                                                    {% set base_time = start_times | min if start_times else (metric.gauge.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
+                                                                    {% set attr_keys = [] %}
+                                                                    {% if metric.gauge.dataPoints|length > 0 and metric.gauge.dataPoints[0].attributes %}
+                                                                        {% for attr in metric.gauge.dataPoints[0].attributes %}
+                                                                            {% set _ = attr_keys.append(attr.key) %}
+                                                                        {% endfor %}
+                                                                    {% endif %}
+                                                                    <table style="border-collapse: collapse; font-family: monospace; font-size: 0.9em;">
+                                                                        <thead>
+                                                                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">From</th>
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">At</th>
+                                                                                <th style="padding: 3px 6px; text-align: right; font-weight: 600; color: #495057;">Value</th>
+                                                                                {% for key in attr_keys %}
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">{{ key }}</th>
                                                                                 {% endfor %}
-                                                                            {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Value</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for dp in metric.gauge.dataPoints %}
-                                                                            <tr>
-                                                                                {% if dp.attributes %}
-                                                                                    {% for attr in dp.attributes %}
-                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
-                                                                                    {% endfor %}
-                                                                                {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {% for dp in metric.gauge.dataPoints %}
+                                                                            <tr style="border-bottom: 1px solid #f8f9fa;">
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {{ format_time_offset(dp.timeUnixNano, base_time) }}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; text-align: right; font-weight: 500; color: #212529;">
                                                                                     {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
                                                                                     {{ format_numeric_value(raw_value) }}
                                                                                 </td>
+                                                                                {% for key in attr_keys %}
+                                                                                    <td style="padding: 2px 6px; color: #495057;">
+                                                                                        {% if dp.attributes %}
+                                                                                            {% for attr in dp.attributes %}
+                                                                                                {% if attr.key == key %}{{ attr.value.stringValue or attr.value.intValue or attr.value.doubleValue or attr.value.boolValue }}{% endif %}
+                                                                                            {% endfor %}
+                                                                                        {% endif %}
+                                                                                    </td>
+                                                                                {% endfor %}
                                                                             </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>
+                                                                            {% endfor %}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </fieldset>
                                                             {% endif %}
                                                         </li>
                                                     {% elif metric.sum %}
                                                         <li class="metric-data-point">Sum (Monotonic: {{ metric.sum.isMonotonic }}, Aggregation: {{ metric.sum.aggregationTemporality }}):
                                                             {% if metric.sum.dataPoints|length > 0 %}
-                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
-                                                                    <thead>
-                                                                        <tr style="background-color: #f5f5f5;">
-                                                                            {% set sample_dp = metric.sum.dataPoints[0] %}
-                                                                            {% if sample_dp.attributes %}
-                                                                                {% for attr in sample_dp.attributes %}
-                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
+                                                                <fieldset style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                                                                    <legend style="font-weight: bold; font-size: 0.9em; padding: 0 5px;">Data Points</legend>
+                                                                    {% set start_times = [] %}
+                                                                    {% for dp in metric.sum.dataPoints %}
+                                                                        {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
+                                                                    {% endfor %}
+                                                                    {% set base_time = start_times | min if start_times else (metric.sum.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
+                                                                    {% set attr_keys = [] %}
+                                                                    {% if metric.sum.dataPoints|length > 0 and metric.sum.dataPoints[0].attributes %}
+                                                                        {% for attr in metric.sum.dataPoints[0].attributes %}
+                                                                            {% set _ = attr_keys.append(attr.key) %}
+                                                                        {% endfor %}
+                                                                    {% endif %}
+                                                                    <table style="border-collapse: collapse; font-family: monospace; font-size: 0.9em;">
+                                                                        <thead>
+                                                                            <tr style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">From</th>
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">At</th>
+                                                                                <th style="padding: 3px 6px; text-align: right; font-weight: 600; color: #495057;">Value</th>
+                                                                                {% for key in attr_keys %}
+                                                                                <th style="padding: 3px 6px; text-align: left; font-weight: 600; color: #495057;">{{ key }}</th>
                                                                                 {% endfor %}
-                                                                            {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Value</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for dp in metric.sum.dataPoints %}
-                                                                            <tr>
-                                                                                {% if dp.attributes %}
-                                                                                    {% for attr in dp.attributes %}
-                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
-                                                                                    {% endfor %}
-                                                                                {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {% for dp in metric.sum.dataPoints %}
+                                                                            <tr style="border-bottom: 1px solid #f8f9fa;">
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; color: #6c757d;">
+                                                                                    {{ format_time_offset(dp.timeUnixNano, base_time) }}
+                                                                                </td>
+                                                                                <td style="padding: 2px 6px; text-align: right; font-weight: 500; color: #212529;">
                                                                                     {% set raw_value = (dp.asDouble if dp.asDouble is defined and dp.asDouble is number else (dp.asInt if dp.asInt is defined and dp.asInt is number else (dp.asDouble or dp.asInt))) %}
                                                                                     {{ format_numeric_value(raw_value) }}
                                                                                 </td>
+                                                                                {% for key in attr_keys %}
+                                                                                    <td style="padding: 2px 6px; color: #495057;">
+                                                                                        {% if dp.attributes %}
+                                                                                            {% for attr in dp.attributes %}
+                                                                                                {% if attr.key == key %}{{ attr.value.stringValue or attr.value.intValue or attr.value.doubleValue or attr.value.boolValue }}{% endif %}
+                                                                                            {% endfor %}
+                                                                                        {% endif %}
+                                                                                    </td>
+                                                                                {% endfor %}
                                                                             </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>
+                                                                            {% endfor %}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </fieldset>
                                                             {% endif %}
                                                         </li>
                                                     {% elif metric.histogram %}
                                                         <li class="metric-data-point">Histogram (Aggregation: {{ metric.histogram.aggregationTemporality }}):
                                                             {% if metric.histogram.dataPoints|length > 0 %}
-                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
-                                                                    <thead>
-                                                                        <tr style="background-color: #f5f5f5;">
-                                                                            {% set sample_dp = metric.histogram.dataPoints[0] %}
-                                                                            {% if sample_dp.attributes %}
-                                                                                {% for attr in sample_dp.attributes %}
-                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
-                                                                                {% endfor %}
-                                                                            {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Min</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Max</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Buckets</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for dp in metric.histogram.dataPoints %}
-                                                                            <tr>
-                                                                                {% if dp.attributes %}
-                                                                                    {% for attr in dp.attributes %}
-                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
-                                                                                    {% endfor %}
-                                                                                {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.count) }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.sum) }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.min) if dp.min is defined else 'N/A' }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.max) if dp.max is defined else 'N/A' }}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">{% if dp.bucketCounts %}{{ dp.bucketCounts }}{% if dp.explicitBounds %} ({{ dp.explicitBounds }}){% endif %}{% else %}N/A{% endif %}</td>
-                                                                            </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>
+                                                                <fieldset style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                                                                    <legend style="font-weight: bold; font-size: 0.9em; padding: 0 5px;">Data Points</legend>
+                                                                    {% set start_times = [] %}
+                                                                    {% for dp in metric.histogram.dataPoints %}
+                                                                        {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
+                                                                    {% endfor %}
+                                                                    {% set base_time = start_times | min if start_times else (metric.histogram.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
+                                                                    {% for dp in metric.histogram.dataPoints %}
+                                                                        <div style="font-family: monospace; margin-bottom: 8px; padding: 5px 0; border-bottom: 1px dotted #eee;">
+                                                                            <div style="margin-bottom: 3px;">
+                                                                                {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %} | 
+                                                                                {{ format_time_offset(dp.timeUnixNano, base_time) }} | 
+                                                                                {{ format_attributes(dp.attributes) }}
+                                                                            </div>
+                                                                            <div style="margin-left: 10px; color: #666;">
+                                                                                Count: {{ format_numeric_value(dp.count) }}, 
+                                                                                Sum: {{ format_numeric_value(dp.sum) }}{% if dp.min is defined %}, 
+                                                                                Min: {{ format_numeric_value(dp.min) }}{% endif %}{% if dp.max is defined %}, 
+                                                                                Max: {{ format_numeric_value(dp.max) }}{% endif %}{% if dp.bucketCounts %}, 
+                                                                                Buckets: {{ dp.bucketCounts }}{% if dp.explicitBounds %} ({{ dp.explicitBounds }}){% endif %}{% endif %}
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                </fieldset>
                                                             {% endif %}
                                                         </li>
                                                     {% elif metric.exponentialHistogram %}
                                                         <li class="metric-data-point">Exponential Histogram (Aggregation: {{ metric.exponentialHistogram.aggregationTemporality }}):
                                                             {% if metric.exponentialHistogram.dataPoints|length > 0 %}
-                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
-                                                                    <thead>
-                                                                        <tr style="background-color: #f5f5f5;">
-                                                                            {% set sample_dp = metric.exponentialHistogram.dataPoints[0] %}
-                                                                            {% if sample_dp.attributes %}
-                                                                                {% for attr in sample_dp.attributes %}
-                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
-                                                                                {% endfor %}
-                                                                            {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for dp in metric.exponentialHistogram.dataPoints %}
-                                                                            <tr>
-                                                                                {% if dp.attributes %}
-                                                                                    {% for attr in dp.attributes %}
-                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
-                                                                                    {% endfor %}
-                                                                                {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.count) }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.sum) }}</td>
-                                                                            </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>
+                                                                <fieldset style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                                                                    <legend style="font-weight: bold; font-size: 0.9em; padding: 0 5px;">Data Points</legend>
+                                                                    {% set start_times = [] %}
+                                                                    {% for dp in metric.exponentialHistogram.dataPoints %}
+                                                                        {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
+                                                                    {% endfor %}
+                                                                    {% set base_time = start_times | min if start_times else (metric.exponentialHistogram.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
+                                                                    {% for dp in metric.exponentialHistogram.dataPoints %}
+                                                                        <div style="font-family: monospace; margin-bottom: 5px; padding: 3px 0; border-bottom: 1px dotted #eee;">
+                                                                            {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %} | 
+                                                                            {{ format_time_offset(dp.timeUnixNano, base_time) }} | 
+                                                                            Count: {{ format_numeric_value(dp.count) }}, Sum: {{ format_numeric_value(dp.sum) }} | 
+                                                                            {{ format_attributes(dp.attributes) }}
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                </fieldset>
                                                             {% endif %}
                                                         </li>
                                                     {% elif metric.summary %}
                                                         <li class="metric-data-point">Summary:
                                                             {% if metric.summary.dataPoints|length > 0 %}
-                                                                <table class="metric-table" style="border-collapse: collapse; margin-top: 10px; font-family: monospace;">
-                                                                    <thead>
-                                                                        <tr style="background-color: #f5f5f5;">
-                                                                            {% set sample_dp = metric.summary.dataPoints[0] %}
-                                                                            {% if sample_dp.attributes %}
-                                                                                {% for attr in sample_dp.attributes %}
-                                                                                    <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">{{ attr.key }}</th>
-                                                                                {% endfor %}
-                                                                            {% endif %}
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Count</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: right;">Sum</th>
-                                                                            <th style="border: 1px solid #ddd; padding: 4px 8px; text-align: left;">Quantiles</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {% for dp in metric.summary.dataPoints %}
-                                                                            <tr>
-                                                                                {% if dp.attributes %}
-                                                                                    {% for attr in dp.attributes %}
-                                                                                        <td style="border: 1px solid #ddd; padding: 4px 8px;">{{ attr.value.stringValue or attr.value.intValue or attr.value.boolValue or attr.value.doubleValue or attr.value or '' }}</td>
-                                                                                    {% endfor %}
-                                                                                {% endif %}
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.count) }}</td>
-                                                                                <td class="numeric" style="border: 1px solid #ddd; padding: 4px 8px;">{{ format_numeric_value(dp.sum) }}</td>
-                                                                                <td style="border: 1px solid #ddd; padding: 4px 8px;">
-                                                                                    {% if dp.quantileValues %}
-                                                                                        {% for qv in dp.quantileValues %}{{ qv.quantile }}: {{ format_numeric_value(qv.value) }}{% if not loop.last %}, {% endif %}{% endfor %}
-                                                                                    {% else %}N/A{% endif %}
-                                                                                </td>
-                                                                            </tr>
-                                                                        {% endfor %}
-                                                                    </tbody>
-                                                                </table>
+                                                                <fieldset style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; margin-top: 10px;">
+                                                                    <legend style="font-weight: bold; font-size: 0.9em; padding: 0 5px;">Data Points</legend>
+                                                                    {% set start_times = [] %}
+                                                                    {% for dp in metric.summary.dataPoints %}
+                                                                        {% if dp.startTimeUnixNano %}{% set _ = start_times.append(dp.startTimeUnixNano | int) %}{% endif %}
+                                                                    {% endfor %}
+                                                                    {% set base_time = start_times | min if start_times else (metric.summary.dataPoints | map(attribute='timeUnixNano') | map('int') | min) %}
+                                                                    {% for dp in metric.summary.dataPoints %}
+                                                                        <div style="font-family: monospace; margin-bottom: 8px; padding: 5px 0; border-bottom: 1px dotted #eee;">
+                                                                            <div style="margin-bottom: 3px;">
+                                                                                {% if dp.startTimeUnixNano %}{{ format_time_offset(dp.startTimeUnixNano, base_time) }}{% else %}0ms{% endif %} | 
+                                                                                {{ format_time_offset(dp.timeUnixNano, base_time) }} | 
+                                                                                {{ format_attributes(dp.attributes) }}
+                                                                            </div>
+                                                                            <div style="margin-left: 10px; color: #666;">
+                                                                                Count: {{ format_numeric_value(dp.count) }}, 
+                                                                                Sum: {{ format_numeric_value(dp.sum) }}{% if dp.quantileValues %}, 
+                                                                                Quantiles: {% for qv in dp.quantileValues %}{{ qv.quantile }}: {{ format_numeric_value(qv.value) }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+                                                                            </div>
+                                                                        </div>
+                                                                    {% endfor %}
+                                                                </fieldset>
                                                             {% endif %}
                                                         </li>
                                                     {% else %}
