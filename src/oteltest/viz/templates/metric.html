@@ -144,6 +144,7 @@
             });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="back">
@@ -209,7 +210,7 @@
                                                 {% for row in metric.table.rows %}
                                                     <tr>
                                                         {% if ns_ts.last_timestamp == row.timestamp %}
-                                                            <td class="col-timestamp"></td>
+                                                            <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ row.timestamp }}" style="display:none">{{ row.timestamp }}</span></td>
                                                         {% else %}
                                                             <td class="col-timestamp"><span class="timestamp" data-timestamp-nano="{{ row.timestamp }}">{{ row.timestamp }}</span></td>
                                                             {% set ns_ts.last_timestamp = row.timestamp %}
@@ -223,6 +224,7 @@
                                                 {% endfor %}
                                             </tbody>
                                         </table>
+                                        <canvas id="chart-{{ loop.index0 }}-{{ metric.name|replace(' ', '_')|replace('.', '_')|replace(':', '_') }}"></canvas>
                                     {% else %}
                                         <ul class="data-points">
                                             <li>No data points for this metric.</li>
@@ -244,6 +246,45 @@
         <p>No metric data available.</p>
     {% endif %}
 </div>
+<script>
+// For each metric, collect data from its table and render a chart in its canvas
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('.metric-item').forEach((metricItem, idx) => {
+        const table = metricItem.querySelector('.data-points-table');
+        const canvas = metricItem.querySelector('canvas[id^="chart-"]');
+        if (!table || !canvas) return;
+
+        const labels = [];
+        const values = [];
+        table.querySelectorAll('tbody tr').forEach(row => {
+            const tsElem = row.querySelector('.timestamp');
+            const value = row.querySelector('.col-value')?.textContent.trim();
+            let timestamp = null;
+            if (tsElem) {
+                timestamp = tsElem.getAttribute('data-timestamp-nano');
+            }
+            if (timestamp && value) {
+                labels.push(timestamp);
+                values.push(parseFloat(value));
+            }
+        });
+        // Draw chart only if there is data
+        if (labels.length > 0 && values.length > 0) {
+            new Chart(canvas, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Metric values",
+                        data: values,
+                        tension: 0.3
+                    }]
+                }
+            });
+        }
+    });
+});
+</script>
 
 </body>
 </html>
