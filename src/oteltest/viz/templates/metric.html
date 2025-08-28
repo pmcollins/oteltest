@@ -247,6 +247,7 @@
     {% endif %}
 </div>
 <script>
+
 // For each metric, collect data from its table and render a chart in its canvas
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.metric-item').forEach((metricItem, idx) => {
@@ -256,15 +257,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const labels = [];
         const values = [];
+        let lastTimestamp = null;
         table.querySelectorAll('tbody tr').forEach(row => {
             const tsElem = row.querySelector('.timestamp');
-            const value = row.querySelector('.col-value')?.textContent.trim();
+            const value = row.querySelector('.col-value')?.textContent?.trim() ?? '';
             let timestamp = null;
+            let label = '';
             if (tsElem) {
                 timestamp = tsElem.getAttribute('data-timestamp-nano');
+                if (timestamp !== lastTimestamp) {
+                    label = formatNanoTimestamp(Number(timestamp));
+                    lastTimestamp = timestamp;
+                } else {
+                    label = '';
+                }
             }
             if (timestamp && value) {
-                labels.push(timestamp);
+                labels.push(label);
                 values.push(parseFloat(value));
             }
         });
