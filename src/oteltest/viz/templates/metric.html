@@ -190,6 +190,10 @@
                                         {% endif %}
                                     </div>
                                     <div class="metric-content">
+                                        <div class="metric-controls">
+                                            <button class="btn-raw">Raw data</button>
+                                            <button class="btn-chart">Chart</button>
+                                        </div>
                                     {% if metric.table %}
                                         <table class="data-points-table">
                                             <thead>
@@ -289,6 +293,26 @@ document.addEventListener("DOMContentLoaded", () => {
                         tension: 0.3
                     }]
                 }
+            });
+        }
+    });
+    document.querySelectorAll('.metric-item').forEach(metricItem => {
+        const table = metricItem.querySelector('.data-points-table');
+        const canvas = metricItem.querySelector('canvas[id^="chart-"]');
+        const btnRaw = metricItem.querySelector('.btn-raw');
+        const btnChart = metricItem.querySelector('.btn-chart');
+
+        if (btnRaw && btnChart && table && canvas) {
+            table.style.display = 'table';
+            canvas.style.display = 'none';
+
+            btnRaw.addEventListener('click', () => {
+                table.style.display = 'table';
+                canvas.style.display = 'none';
+            });
+            btnChart.addEventListener('click', () => {
+                table.style.display = 'none';
+                canvas.style.display = 'block';
             });
         }
     });
