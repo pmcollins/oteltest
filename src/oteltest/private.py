@@ -82,9 +82,10 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str, jso
 
     pip_path = script_venv.path_to_executable("pip")
 
-    for req in oteltest_instance.requirements():
-        logger.info("Will install requirement: '%s'", req)
-        run_subprocess([pip_path, "install", req], logger)
+    reqs = list(oteltest_instance.requirements())
+    if reqs:
+        logger.info("Will install requirements: %s", reqs)
+        run_subprocess([pip_path, "install"] + reqs, logger)
 
     stdout, stderr, returncode = run_python_script(
         start_subprocess, script_dir, script, oteltest_instance, script_venv, logger
