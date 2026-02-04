@@ -5,6 +5,7 @@ from concurrent import futures
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import grpc  # type: ignore
+from google.protobuf.json_format import Parse
 from opentelemetry.proto.collector.logs.v1 import (  # type: ignore
     logs_service_pb2_grpc,
 )
@@ -51,6 +52,20 @@ def raise_if_port_in_use(port):
     if is_port_in_use(port):
         error_message = f"port {port} is in use"
         raise PortInUseError(error_message)
+
+
+def _is_json_content_type(headers):
+    content_type = headers.get("Content-Type", "").lower()
+    return "application/json" in content_type
+
+
+def _parse_request(post_data, headers, request_class):
+    req = request_class()
+    if _is_json_content_type(headers):
+        Parse(post_data, req)
+    else:
+        req.ParseFromString(post_data)
+    return req
 
 
 class GrpcSink:
@@ -141,18 +156,15 @@ class HttpSink:
         self.httpd.serve_forever()
 
     def handle_trace(self, post_data, headers):
-        req = ExportTraceServiceRequest()
-        req.ParseFromString(post_data)
+        req = _parse_request(post_data, headers, ExportTraceServiceRequest)
         self.listener.handle_trace(req, headers)
 
     def handle_metrics(self, post_data, headers):
-        req = ExportMetricsServiceRequest()
-        req.ParseFromString(post_data)
+        req = _parse_request(post_data, headers, ExportMetricsServiceRequest)
         self.listener.handle_metrics(req, headers)
 
     def handle_logs(self, post_data, headers):
-        req = ExportLogsServiceRequest()
-        req.ParseFromString(post_data)
+        req = _parse_request(post_data, headers, ExportLogsServiceRequest)
         self.listener.handle_logs(req, headers)
 
     def stop(self):
