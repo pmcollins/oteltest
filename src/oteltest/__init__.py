@@ -41,7 +41,7 @@ class OtelTest(abc.ABC):
     @abc.abstractmethod
     def is_http(self) -> bool:
         """
-        Defaults to false which gives you grpc.
+        Return True to use HTTP (port 4318), False for gRPC (port 4317).
         """
 
     @abc.abstractmethod

@@ -20,6 +20,10 @@ from oteltest.private import (
     run_python_script,
     save_telemetry_json,
 )
+from oteltest.sink import _is_json_content_type, _parse_request
+from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
+    ExportTraceServiceRequest,
+)
 from oteltest.telemetry import (
     Telemetry,
     count_logs,
@@ -297,3 +301,27 @@ class FakeSubProcess:
 
     def kill(self):
         pass
+
+
+def test_is_json_content_type():
+    assert _is_json_content_type({"Content-Type": "application/json"})
+    assert _is_json_content_type({"Content-Type": "application/json; charset=utf-8"})
+    assert _is_json_content_type({"Content-Type": "APPLICATION/JSON"})
+    assert not _is_json_content_type({"Content-Type": "application/x-protobuf"})
+    assert not _is_json_content_type({"Content-Type": "text/plain"})
+    assert not _is_json_content_type({})
+
+
+def test_parse_request_protobuf():
+    req = ExportTraceServiceRequest()
+    post_data = req.SerializeToString()
+    headers = {"Content-Type": "application/x-protobuf"}
+    parsed = _parse_request(post_data, headers, ExportTraceServiceRequest)
+    assert isinstance(parsed, ExportTraceServiceRequest)
+
+
+def test_parse_request_json():
+    json_data = b'{"resourceSpans": []}'
+    headers = {"Content-Type": "application/json"}
+    parsed = _parse_request(json_data, headers, ExportTraceServiceRequest)
+    assert isinstance(parsed, ExportTraceServiceRequest)
