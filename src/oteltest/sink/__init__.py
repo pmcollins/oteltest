@@ -35,9 +35,10 @@ from oteltest.sink.private import (
 
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.settimeout(1)
         try:
-            s.bind(("127.0.0.1", port))
+            s.bind(("", port))
         except OSError:
             return True
         else:
@@ -152,6 +153,7 @@ class HttpSink:
                 self.wfile.write(b"OK")
 
         # noinspection PyTypeChecker
+        HTTPServer.allow_reuse_address = True
         self.httpd = HTTPServer(("", self.port), Handler)
         self.httpd.serve_forever()
 
