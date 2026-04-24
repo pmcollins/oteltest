@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import pickle
+import sys
 from typing import Mapping, Optional, Sequence
+from unittest import mock
 
 import pytest
 from opentelemetry.proto.logs.v1.logs_pb2 import LogRecord
@@ -200,11 +202,26 @@ def test_run_python_script():
         Venv("venv_dir", logger),
         logger,
     )
+    expected_python = Venv("venv_dir", logger).path_to_executable("python")
     assert t.python_script_cmd == [
-        "venv_dir/bin/python",
+        expected_python,
         "script_dir/script",
     ]
     assert t.env == env_store
+
+
+def test_venv_path_to_executable_unix():
+    with mock.patch.object(sys, "platform", "linux"):
+        v = Venv("/my/venv", logging.getLogger())
+        assert v.path_to_executable("pip") == "/my/venv/bin/pip"
+        assert v.path_to_executable("python") == "/my/venv/bin/python"
+
+
+def test_venv_path_to_executable_windows():
+    with mock.patch.object(sys, "platform", "win32"):
+        v = Venv("/my/venv", logging.getLogger())
+        assert v.path_to_executable("pip") == "/my/venv/Scripts/pip.exe"
+        assert v.path_to_executable("python") == "/my/venv/Scripts/python.exe"
 
 
 def test_get_traces(metrics_and_traces_telemetry_fixture):

@@ -237,8 +237,10 @@ class Venv:
         else:
             venv.create(self.venv_dir, with_pip=True)
 
-    def path_to_executable(self, executable_name: str):
-        return f"{self.venv_dir}/bin/{executable_name}"
+    def path_to_executable(self, executable_name: str) -> str:
+        if sys.platform == "win32":
+            return str(Path(self.venv_dir) / "Scripts" / f"{executable_name}.exe")
+        return str(Path(self.venv_dir) / "bin" / executable_name)
 
     def rm(self):
         shutil.rmtree(self.venv_dir)
