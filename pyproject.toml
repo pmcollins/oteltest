@@ -7,7 +7,7 @@ name = "oteltest"
 dynamic = ["version"]
 description = "OpenTelemetry Tester"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 keywords = []
 authors = []
 classifiers = [
@@ -68,7 +68,7 @@ cov = [
 ]
 
 [tool.hatch.envs.all]
-matrix = [{ python = ["3.8", "3.9", "3.10", "3.11", "3.12"] }]
+matrix = [{ python = ["3.10", "3.11", "3.12", "3.13", "3.14"] }]
 
 [tool.hatch.envs.types]
 dependencies = [
