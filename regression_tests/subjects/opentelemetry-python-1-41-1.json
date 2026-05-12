@@ -1,0 +1,19 @@
+{
+  "name": "opentelemetry-python-1-41-1",
+  "requirements": [
+    "opentelemetry-api==1.41.1",
+    "opentelemetry-sdk==1.41.1",
+    "opentelemetry-distro==0.62b1",
+    "opentelemetry-exporter-otlp-proto-http==1.41.1",
+    "opentelemetry-instrumentation-sqlite3==0.62b1"
+  ],
+  "environment_variables": {
+    "OTEL_SERVICE_NAME": "regression-sqlite3-basic",
+    "OTEL_TRACES_EXPORTER": "otlp",
+    "OTEL_METRICS_EXPORTER": "none",
+    "OTEL_LOGS_EXPORTER": "none",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://localhost:4318/v1/traces"
+  },
+  "wrapper_command": "opentelemetry-instrument"
+}

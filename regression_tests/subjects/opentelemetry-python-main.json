@@ -1,0 +1,24 @@
+{
+  "name": "opentelemetry-python-main",
+  "requirements": [
+    "opentelemetry-api @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-api",
+    "opentelemetry-proto @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-proto",
+    "opentelemetry-semantic-conventions @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-semantic-conventions",
+    "opentelemetry-sdk @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-sdk",
+    "opentelemetry-exporter-otlp-proto-common @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=exporter/opentelemetry-exporter-otlp-proto-common",
+    "opentelemetry-exporter-otlp-proto-http @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=exporter/opentelemetry-exporter-otlp-proto-http",
+    "opentelemetry-instrumentation @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=opentelemetry-instrumentation",
+    "opentelemetry-distro @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=opentelemetry-distro",
+    "opentelemetry-instrumentation-dbapi @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-dbapi",
+    "opentelemetry-instrumentation-sqlite3 @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-sqlite3"
+  ],
+  "environment_variables": {
+    "OTEL_SERVICE_NAME": "regression-sqlite3-basic",
+    "OTEL_TRACES_EXPORTER": "otlp",
+    "OTEL_METRICS_EXPORTER": "none",
+    "OTEL_LOGS_EXPORTER": "none",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://localhost:4318/v1/traces"
+  },
+  "wrapper_command": "opentelemetry-instrument"
+}

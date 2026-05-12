@@ -1,0 +1,49 @@
+{
+  "logs": [],
+  "metrics": [],
+  "traces": [
+    {
+      "resource": {
+        "service.name": "regression-sqlite3-basic",
+        "telemetry.sdk.language": "python",
+        "telemetry.sdk.name": "opentelemetry"
+      },
+      "scope": {
+        "name": "opentelemetry.instrumentation.sqlite3",
+        "schema_url": "https://opentelemetry.io/schemas/1.11.0"
+      },
+      "spans": [
+        {
+          "attributes": {
+            "db.name": "",
+            "db.statement": "create table users (id integer primary key, name text)",
+            "db.system": "sqlite"
+          },
+          "kind": "SPAN_KIND_CLIENT",
+          "name": "create",
+          "status": {}
+        },
+        {
+          "attributes": {
+            "db.name": "",
+            "db.statement": "insert into users (name) values (?)",
+            "db.system": "sqlite"
+          },
+          "kind": "SPAN_KIND_CLIENT",
+          "name": "insert",
+          "status": {}
+        },
+        {
+          "attributes": {
+            "db.name": "",
+            "db.statement": "select id, name from users where name = ?",
+            "db.system": "sqlite"
+          },
+          "kind": "SPAN_KIND_CLIENT",
+          "name": "select",
+          "status": {}
+        }
+      ]
+    }
+  ]
+}
