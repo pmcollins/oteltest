@@ -12,6 +12,10 @@ BEHAVIORAL_RESOURCE_EXCLUDES = {
     "telemetry.auto.version",
     "telemetry.sdk.version",
 }
+BEHAVIORAL_EMPTY_SPAN_ATTRIBUTE_EXCLUDES = {
+    "db.name",
+    "db.namespace",
+}
 
 
 def normalize_telemetry(raw: dict[str, Any], profile: str = "strict") -> dict[str, Any]:
@@ -52,18 +56,27 @@ def normalize_traces(
                         "resource": resource_attrs,
                         "scope": normalized_scope,
                         "spans": [
-                            normalize_span(span) for span in scope_span.get("spans", [])
+                            normalize_span(span, profile)
+                            for span in scope_span.get("spans", [])
                         ],
                     }
                 )
     return traces
 
 
-def normalize_span(span: dict[str, Any]) -> dict[str, Any]:
+def normalize_span(span: dict[str, Any], profile: str) -> dict[str, Any]:
+    span_attributes = normalize_attributes(span.get("attributes", []))
+    if profile == "behavioral":
+        span_attributes = {
+            key: value
+            for key, value in span_attributes.items()
+            if key not in BEHAVIORAL_EMPTY_SPAN_ATTRIBUTE_EXCLUDES or value != ""
+        }
+
     normalized = {
         "name": span.get("name", ""),
         "kind": span.get("kind", ""),
-        "attributes": normalize_attributes(span.get("attributes", [])),
+        "attributes": span_attributes,
         "status": normalize_status(span.get("status", {})),
     }
 

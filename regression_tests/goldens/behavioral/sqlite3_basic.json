@@ -15,7 +15,6 @@
       "spans": [
         {
           "attributes": {
-            "db.name": "",
             "db.statement": "create table users (id integer primary key, name text)",
             "db.system": "sqlite"
           },
@@ -25,7 +24,6 @@
         },
         {
           "attributes": {
-            "db.name": "",
             "db.statement": "insert into users (name) values (?)",
             "db.system": "sqlite"
           },
@@ -35,7 +33,6 @@
         },
         {
           "attributes": {
-            "db.name": "",
             "db.statement": "select id, name from users where name = ?",
             "db.system": "sqlite"
           },

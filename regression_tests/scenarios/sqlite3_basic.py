@@ -9,24 +9,27 @@ DBAPI-style instrumentation.
 
 import sqlite3
 import sys
+import tempfile
 from functools import cached_property
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from regression_tests.subjects import load_subject
 
-
 if __name__ == "__main__":
-    conn = sqlite3.connect(":memory:")
-    try:
-        cur = conn.cursor()
-        cur.execute("create table users (id integer primary key, name text)")
-        cur.execute("insert into users (name) values (?)", ("alice",))
-        cur.execute("select id, name from users where name = ?", ("alice",))
-        rows = cur.fetchall()
-        assert rows == [(1, "alice")], rows
-    finally:
-        conn.close()
+    with tempfile.TemporaryDirectory(prefix="oteltest-sqlite3-basic-") as tmpdir:
+        db_path = Path(tmpdir) / "sqlite3_basic.db"
+
+        conn = sqlite3.connect(str(db_path))
+        try:
+            cur = conn.cursor()
+            cur.execute("create table users (id integer primary key, name text)")
+            cur.execute("insert into users (name) values (?)", ("alice",))
+            cur.execute("select id, name from users where name = ?", ("alice",))
+            rows = cur.fetchall()
+            assert rows == [(1, "alice")], rows
+        finally:
+            conn.close()
 
     print("dbapi workload complete")
 

@@ -127,3 +127,65 @@ def test_behavioral_profile_removes_version_noise():
         "name": "scope",
         "schema_url": "https://example.test/schema",
     }
+
+
+def test_behavioral_profile_removes_empty_db_name_attributes():
+    raw = {
+        "trace_requests": [
+            {
+                "pbreq": {
+                    "resourceSpans": [
+                        {
+                            "resource": {"attributes": []},
+                            "scopeSpans": [
+                                {
+                                    "scope": {"name": "scope", "version": "1.0"},
+                                    "spans": [
+                                        {
+                                            "name": "select",
+                                            "kind": "SPAN_KIND_CLIENT",
+                                            "attributes": [
+                                                {
+                                                    "key": "custom.empty",
+                                                    "value": {"stringValue": ""},
+                                                },
+                                                {
+                                                    "key": "db.name",
+                                                    "value": {"stringValue": ""},
+                                                },
+                                                {
+                                                    "key": "db.namespace",
+                                                    "value": {"stringValue": ""},
+                                                },
+                                                {
+                                                    "key": "db.statement",
+                                                    "value": {
+                                                        "stringValue": "select 1"
+                                                    },
+                                                },
+                                            ],
+                                            "status": {},
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+    strict_normalized = normalize_telemetry(raw)
+    behavioral_normalized = normalize_telemetry(raw, profile="behavioral")
+
+    assert strict_normalized["traces"][0]["spans"][0]["attributes"] == {
+        "custom.empty": "",
+        "db.name": "",
+        "db.namespace": "",
+        "db.statement": "select 1",
+    }
+    assert behavioral_normalized["traces"][0]["spans"][0]["attributes"] == {
+        "custom.empty": "",
+        "db.statement": "select 1",
+    }
