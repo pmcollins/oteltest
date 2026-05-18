@@ -43,6 +43,11 @@ otelviz = "oteltest.viz.main:main"
 [tool.hatch.version]
 path = "src/oteltest/version.py"
 
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/regression_tests",
+]
+
 [tool.hatch.envs.default]
 dependencies = [
     "coverage[toml]>=6.5",
