@@ -103,7 +103,7 @@ def run_regression(
         return check(raw_path, golden_path, profile)
 
 
-def main() -> int:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run an oteltest regression scenario and compare it to a golden."
     )
@@ -112,7 +112,7 @@ def main() -> int:
     parser.add_argument(
         "--profile",
         choices=PROFILE_CHOICES,
-        default="behavioral",
+        default="strict",
         help="Normalization profile to compare with.",
     )
     parser.add_argument("--golden", type=Path, help="Override the golden file path.")
@@ -121,7 +121,11 @@ def main() -> int:
         type=Path,
         help="Directory for raw oteltest JSON output. Must not already contain this scenario output.",
     )
-    args = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def main() -> int:
+    args = parse_args()
 
     return run_regression(
         scenario=args.scenario,

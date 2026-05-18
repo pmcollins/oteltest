@@ -2,6 +2,7 @@ from pathlib import Path
 
 from regression_tests.tools.run_regression import (
     default_golden_path,
+    parse_args,
     raw_output_path,
     scenario_path,
 )
@@ -38,3 +39,9 @@ def test_default_golden_path_for_strict_profile():
             "regression_tests/goldens/opentelemetry-python-1-41-1/sqlite3_basic.json"
         ).resolve()
     )
+
+
+def test_cli_defaults_to_strict_profile():
+    args = parse_args(["sqlite3_basic"])
+
+    assert args.profile == "strict"
