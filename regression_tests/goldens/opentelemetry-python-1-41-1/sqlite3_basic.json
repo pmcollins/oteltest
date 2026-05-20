@@ -4,7 +4,7 @@
   "traces": [
     {
       "resource": {
-        "service.name": "regression-sqlite3-basic",
+        "service.name": "oteltest-regression",
         "telemetry.auto.version": "0.62b1",
         "telemetry.sdk.language": "python",
         "telemetry.sdk.name": "opentelemetry",

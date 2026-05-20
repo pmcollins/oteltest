@@ -189,3 +189,81 @@ def test_behavioral_profile_removes_empty_db_name_attributes():
         "custom.empty": "",
         "db.statement": "select 1",
     }
+
+
+def test_normalize_telemetry_scrubs_loopback_url_ports():
+    raw = {
+        "trace_requests": [
+            {
+                "pbreq": {
+                    "resourceSpans": [
+                        {
+                            "resource": {"attributes": []},
+                            "scopeSpans": [
+                                {
+                                    "scope": {"name": "scope", "version": "1.0"},
+                                    "spans": [
+                                        {
+                                            "name": "GET",
+                                            "kind": "SPAN_KIND_CLIENT",
+                                            "attributes": [
+                                                {
+                                                    "key": "http.url",
+                                                    "value": {
+                                                        "stringValue": (
+                                                            "http://127.0.0.1:51234/"
+                                                            "users/42?active=true"
+                                                        )
+                                                    },
+                                                },
+                                                {
+                                                    "key": "url.full",
+                                                    "value": {
+                                                        "stringValue": (
+                                                            "http://localhost:49876/"
+                                                            "hello/alice"
+                                                        )
+                                                    },
+                                                },
+                                                {
+                                                    "key": "http.host",
+                                                    "value": {
+                                                        "stringValue": (
+                                                            "127.0.0.1:51234"
+                                                        )
+                                                    },
+                                                },
+                                                {
+                                                    "key": "server.port",
+                                                    "value": {"intValue": 51234},
+                                                },
+                                                {
+                                                    "key": "net.host.name",
+                                                    "value": {
+                                                        "stringValue": (
+                                                            "localhost:49876"
+                                                        )
+                                                    },
+                                                },
+                                            ],
+                                            "status": {},
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+    normalized = normalize_telemetry(raw)
+
+    assert normalized["traces"][0]["spans"][0]["attributes"] == {
+        "http.host": "127.0.0.1:<port>",
+        "http.url": "http://127.0.0.1:<port>/users/42?active=true",
+        "net.host.name": "localhost:<port>",
+        "server.port": "<port>",
+        "url.full": "http://localhost:<port>/hello/alice",
+    }
