@@ -10,10 +10,16 @@
     "opentelemetry-instrumentation @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=opentelemetry-instrumentation",
     "opentelemetry-distro @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=opentelemetry-distro",
     "opentelemetry-instrumentation-dbapi @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-dbapi",
-    "opentelemetry-instrumentation-sqlite3 @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-sqlite3"
+    "opentelemetry-instrumentation-flask @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-flask",
+    "opentelemetry-instrumentation-requests @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-requests",
+    "opentelemetry-instrumentation-sqlalchemy @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-sqlalchemy",
+    "opentelemetry-instrumentation-sqlite3 @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=instrumentation/opentelemetry-instrumentation-sqlite3",
+    "Flask==3.1.2",
+    "requests==2.34.2",
+    "SQLAlchemy==2.0.49"
   ],
   "environment_variables": {
-    "OTEL_SERVICE_NAME": "regression-sqlite3-basic",
+    "OTEL_SERVICE_NAME": "oteltest-regression",
     "OTEL_TRACES_EXPORTER": "otlp",
     "OTEL_METRICS_EXPORTER": "none",
     "OTEL_LOGS_EXPORTER": "none",

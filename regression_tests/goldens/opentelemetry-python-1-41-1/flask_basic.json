@@ -1,0 +1,69 @@
+{
+  "logs": [],
+  "metrics": [],
+  "traces": [
+    {
+      "resource": {
+        "service.name": "oteltest-regression",
+        "telemetry.auto.version": "0.62b1",
+        "telemetry.sdk.language": "python",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.41.1"
+      },
+      "scope": {
+        "name": "opentelemetry.instrumentation.flask",
+        "schema_url": "https://opentelemetry.io/schemas/1.11.0",
+        "version": "0.62b1"
+      },
+      "spans": [
+        {
+          "attributes": {
+            "http.flavor": "1.1",
+            "http.host": "127.0.0.1:<port>",
+            "http.method": "GET",
+            "http.route": "/hello/<name>",
+            "http.scheme": "http",
+            "http.server_name": "127.0.0.1",
+            "http.status_code": "200",
+            "http.target": "/hello/alice?debug=true",
+            "http.user_agent": "python-requests/2.34.2",
+            "net.host.name": "127.0.0.1:<port>",
+            "net.host.port": "<port>",
+            "net.peer.ip": "127.0.0.1",
+            "net.peer.port": "<port>"
+          },
+          "kind": "SPAN_KIND_SERVER",
+          "name": "GET /hello/<name>",
+          "status": {}
+        }
+      ]
+    },
+    {
+      "resource": {
+        "service.name": "oteltest-regression",
+        "telemetry.auto.version": "0.62b1",
+        "telemetry.sdk.language": "python",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.41.1"
+      },
+      "scope": {
+        "name": "opentelemetry.instrumentation.requests",
+        "schema_url": "https://opentelemetry.io/schemas/1.11.0",
+        "version": "0.62b1"
+      },
+      "spans": [
+        {
+          "attributes": {
+            "http.method": "GET",
+            "http.status_code": "200",
+            "http.url": "http://127.0.0.1:<port>/hello/alice?debug=true",
+            "user_agent.original": "python-requests/2.34.2"
+          },
+          "kind": "SPAN_KIND_CLIENT",
+          "name": "GET",
+          "status": {}
+        }
+      ]
+    }
+  ]
+}

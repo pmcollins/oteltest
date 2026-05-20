@@ -1,0 +1,30 @@
+{
+  "logs": [],
+  "metrics": [],
+  "traces": [
+    {
+      "resource": {
+        "service.name": "oteltest-regression",
+        "telemetry.sdk.language": "python",
+        "telemetry.sdk.name": "opentelemetry"
+      },
+      "scope": {
+        "name": "opentelemetry.instrumentation.requests",
+        "schema_url": "https://opentelemetry.io/schemas/1.11.0"
+      },
+      "spans": [
+        {
+          "attributes": {
+            "http.method": "GET",
+            "http.status_code": "200",
+            "http.url": "http://127.0.0.1:<port>/users/42?active=true",
+            "user_agent.original": "python-requests/2.34.2"
+          },
+          "kind": "SPAN_KIND_CLIENT",
+          "name": "GET",
+          "status": {}
+        }
+      ]
+    }
+  ]
+}

@@ -3,11 +3,30 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 PROFILE_CHOICES = ("strict", "behavioral")
+LOCALHOST_URL_PORT_RE = re.compile(r"(https?://(?:127\.0\.0\.1|localhost)):\d+")
+LOCALHOST_HOST_PORT_RE = re.compile(r"((?:127\.0\.0\.1|localhost)):\d+")
+URL_ATTRIBUTES = {
+    "http.url",
+    "url.full",
+}
+HOST_PORT_ATTRIBUTES = {
+    "http.host",
+    "net.host.name",
+}
+PORT_ATTRIBUTES = {
+    "client.port",
+    "net.host.port",
+    "net.peer.port",
+    "network.local.port",
+    "network.peer.port",
+    "server.port",
+}
 BEHAVIORAL_RESOURCE_EXCLUDES = {
     "telemetry.auto.version",
     "telemetry.sdk.version",
@@ -104,10 +123,22 @@ def normalize_status(status: dict[str, Any]) -> dict[str, str]:
 
 def normalize_attributes(attributes: list[dict[str, Any]]) -> dict[str, Any]:
     return {
-        attribute["key"]: normalize_value(attribute.get("value", {}))
+        attribute["key"]: normalize_attribute_value(
+            attribute["key"], normalize_value(attribute.get("value", {}))
+        )
         for attribute in sorted(attributes, key=lambda item: item.get("key", ""))
         if "key" in attribute
     }
+
+
+def normalize_attribute_value(key: str, value: Any) -> Any:
+    if key in URL_ATTRIBUTES and isinstance(value, str):
+        return LOCALHOST_URL_PORT_RE.sub(r"\1:<port>", value)
+    if key in HOST_PORT_ATTRIBUTES and isinstance(value, str):
+        return LOCALHOST_HOST_PORT_RE.sub(r"\1:<port>", value)
+    if key in PORT_ATTRIBUTES:
+        return "<port>"
+    return value
 
 
 def normalize_value(value: dict[str, Any]) -> Any:

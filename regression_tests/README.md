@@ -10,7 +10,7 @@ release, upstream `main`, or another SDK/instrumentation implementation.
 
 ## Mental Model
 
-- A scenario is the workload, such as `sqlite3_basic.py`.
+- A scenario is the workload, such as `sqlite3_basic.py` or `requests_basic.py`.
 - A subject is the OpenTelemetry SDK/instrumentation set installed for a run.
 - Raw telemetry is the JSON captured by `oteltest`.
 - Normalized telemetry removes unstable request IDs, timestamps, and transport
@@ -20,8 +20,17 @@ release, upstream `main`, or another SDK/instrumentation implementation.
 Available subjects:
 
 - `opentelemetry-python-1-41-1` - default pinned PyPI release subject.
+- `opentelemetry-python-1-42-0` - pinned PyPI release subject for comparing
+  the latest release with the previous known-good behavioral goldens.
 - `opentelemetry-python-main` - installs OpenTelemetry Python and contrib
   packages from upstream `main` branches.
+
+Available scenarios:
+
+- `sqlite3_basic` - sqlite3 DBAPI instrumentation.
+- `requests_basic` - requests HTTP client instrumentation.
+- `sqlalchemy_sqlite_basic` - SQLAlchemy instrumentation over sqlite.
+- `flask_basic` - Flask server instrumentation through a local request.
 
 Run commands from the repository root. Activate the project environment first so
 `oteltest` and the regression tools are on `PATH`:
@@ -72,6 +81,25 @@ Run upstream main against the behavioral golden:
 python regression_tests/tools/run_regression.py sqlite3_basic \
   --subject opentelemetry-python-main \
   --profile behavioral
+```
+
+Run the just-released OpenTelemetry Python 1.42.0 subject against the previous
+known-good behavioral golden:
+
+```shell
+python regression_tests/tools/run_regression.py sqlite3_basic \
+  --subject opentelemetry-python-1-42-0 \
+  --profile behavioral
+```
+
+Run the current scenario set:
+
+```shell
+for scenario in sqlite3_basic requests_basic sqlalchemy_sqlite_basic flask_basic; do
+  python regression_tests/tools/run_regression.py "$scenario" \
+    --subject opentelemetry-python-1-42-0 \
+    --profile behavioral
+done
 ```
 
 Keep raw telemetry after a run by choosing an output directory:
