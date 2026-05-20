@@ -15,13 +15,15 @@ release, upstream `main`, or another SDK/instrumentation implementation.
 - Raw telemetry is the JSON captured by `oteltest`.
 - Normalized telemetry removes unstable request IDs, timestamps, and transport
   details so two runs can be compared.
-- A golden is the approved normalized telemetry for a scenario and profile.
+- A golden is the approved normalized telemetry for a scenario and profile. The
+  default behavioral golden baseline is currently
+  `opentelemetry-python-1-41-1-behavioral`.
 
 Available subjects:
 
 - `opentelemetry-python-1-41-1` - default pinned PyPI release subject.
 - `opentelemetry-python-1-42-0` - pinned PyPI release subject for comparing
-  the latest release with the previous known-good behavioral goldens.
+  the latest release with the `opentelemetry-python-1-41-1-behavioral` goldens.
 - `opentelemetry-python-main` - installs OpenTelemetry Python and contrib
   packages from upstream `main` branches.
 
@@ -48,7 +50,8 @@ The runner compares normalized telemetry with a selected profile:
 - `behavioral` is for comparing upstream development subjects against stable
   telemetry behavior. It drops SDK and instrumentation version fields, drops
   scope version, and treats empty database-name span attributes (`db.name` and
-  `db.namespace`) as absent.
+  `db.namespace`) as absent. By default, this profile compares against the
+  `regression_tests/goldens/opentelemetry-python-1-41-1-behavioral/` baseline.
 
 Use `strict` when you want to know whether a pinned subject still matches its
 exact recorded output. Use `behavioral` for nightly/main checks where version
@@ -75,7 +78,7 @@ python regression_tests/tools/run_regression.py sqlite3_basic \
   --profile strict
 ```
 
-Run upstream main against the behavioral golden:
+Run upstream main against the `opentelemetry-python-1-41-1-behavioral` golden:
 
 ```shell
 python regression_tests/tools/run_regression.py sqlite3_basic \
@@ -83,8 +86,8 @@ python regression_tests/tools/run_regression.py sqlite3_basic \
   --profile behavioral
 ```
 
-Run the just-released OpenTelemetry Python 1.42.0 subject against the previous
-known-good behavioral golden:
+Run the just-released OpenTelemetry Python 1.42.0 subject against the
+`opentelemetry-python-1-41-1-behavioral` golden:
 
 ```shell
 python regression_tests/tools/run_regression.py sqlite3_basic \
@@ -148,13 +151,13 @@ Generate or update the behavioral golden:
 python regression_tests/tools/normalize_telemetry.py \
   /tmp/oteltest-sqlite3-golden/sqlite3_basic.0.json \
   --profile behavioral \
-  --output regression_tests/goldens/behavioral/sqlite3_basic.json
+  --output regression_tests/goldens/opentelemetry-python-1-41-1-behavioral/sqlite3_basic.json
 ```
 
-The behavioral golden is usually generated from the latest known-good release.
-If upstream `main` intentionally changes behavior and we accept that change,
-capture raw telemetry from that subject and regenerate the behavioral golden
-from that capture.
+The behavioral golden directory name should identify the release used to
+generate it. If upstream `main` intentionally changes behavior and we accept
+that change, capture raw telemetry from that subject and regenerate the
+behavioral golden from that capture.
 
 After changing a golden, rerun the checks that should pass:
 
