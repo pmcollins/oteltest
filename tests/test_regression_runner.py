@@ -28,7 +28,10 @@ def test_raw_output_path_is_deterministic_for_fresh_output_dir(tmp_path):
 def test_default_golden_path_for_behavioral_profile():
     assert (
         default_golden_path("opentelemetry-python-main", "sqlite3_basic", "behavioral")
-        == Path("regression_tests/goldens/behavioral/sqlite3_basic.json").resolve()
+        == Path(
+            "regression_tests/goldens/"
+            "opentelemetry-python-1-41-1-behavioral/sqlite3_basic.json"
+        ).resolve()
     )
 
 

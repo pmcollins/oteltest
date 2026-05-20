@@ -18,6 +18,8 @@ from regression_tests.tools.normalize_telemetry import PROFILE_CHOICES, check
 
 SCENARIOS_DIR = ROOT / "regression_tests" / "scenarios"
 GOLDENS_DIR = ROOT / "regression_tests" / "goldens"
+BEHAVIORAL_BASELINE_SUBJECT = "opentelemetry-python-1-41-1"
+BEHAVIORAL_GOLDEN_DIR = f"{BEHAVIORAL_BASELINE_SUBJECT}-behavioral"
 
 
 def scenario_path(scenario: str) -> Path:
@@ -31,7 +33,9 @@ def raw_output_path(json_dir: Path, scenario: str) -> Path:
 
 def default_golden_path(subject: str, scenario: str, profile: str) -> Path:
     if profile == "behavioral":
-        return GOLDENS_DIR / "behavioral" / f"{scenario.removesuffix('.py')}.json"
+        return (
+            GOLDENS_DIR / BEHAVIORAL_GOLDEN_DIR / f"{scenario.removesuffix('.py')}.json"
+        )
     return GOLDENS_DIR / subject / f"{scenario.removesuffix('.py')}.json"
 
 
