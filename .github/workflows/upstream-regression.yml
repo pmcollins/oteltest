@@ -1,0 +1,53 @@
+name: upstream regression
+
+on:
+  schedule:
+    - cron: "17 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  opentelemetry-python-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e .
+
+      - name: Run behavioral regression scenarios
+        shell: bash
+        run: |
+          set +e
+          status=0
+
+          for scenario in sqlite3_basic requests_basic sqlalchemy_sqlite_basic flask_basic; do
+            echo "::group::$scenario"
+            python regression_tests/tools/run_regression.py "$scenario" \
+              --subject opentelemetry-python-main \
+              --profile behavioral \
+              --output-dir "regression-artifacts/$scenario"
+            rc=$?
+            echo "::endgroup::"
+
+            if [ "$rc" -ne 0 ]; then
+              status=1
+            fi
+          done
+
+          exit "$status"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: regression-artifacts
+          path: regression-artifacts/
+          if-no-files-found: ignore
