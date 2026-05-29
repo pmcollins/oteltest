@@ -53,8 +53,9 @@ def run_oteltest(scenario_file: Path, subject: str, json_dir: Path) -> int:
 @contextmanager
 def output_dir(path: Path | None) -> Iterator[Path]:
     if path is not None:
-        path.mkdir(parents=True, exist_ok=True)
-        yield path
+        resolved = path.resolve()
+        resolved.mkdir(parents=True, exist_ok=True)
+        yield resolved
         return
 
     with tempfile.TemporaryDirectory(prefix="oteltest-regression-") as temp_dir:

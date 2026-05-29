@@ -2,6 +2,7 @@ from pathlib import Path
 
 from regression_tests.tools.run_regression import (
     default_golden_path,
+    output_dir,
     parse_args,
     raw_output_path,
     scenario_path,
@@ -23,6 +24,15 @@ def test_raw_output_path_is_deterministic_for_fresh_output_dir(tmp_path):
     assert (
         raw_output_path(tmp_path, "sqlite3_basic") == tmp_path / "sqlite3_basic.0.json"
     )
+
+
+def test_output_dir_resolves_relative_paths(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    with output_dir(Path("regression-artifacts/sqlite3_basic")) as path:
+        assert path == tmp_path / "regression-artifacts/sqlite3_basic"
+        assert path.is_absolute()
+        assert path.is_dir()
 
 
 def test_default_golden_path_for_behavioral_profile():
