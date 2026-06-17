@@ -74,7 +74,7 @@ def test_normalize_telemetry_removes_unstable_span_fields():
     }
 
 
-def test_behavioral_profile_removes_version_noise():
+def test_behavioral_profile_removes_resource_noise():
     raw = {
         "trace_requests": [
             {
@@ -90,6 +90,15 @@ def test_behavioral_profile_removes_version_noise():
                                     {
                                         "key": "telemetry.auto.version",
                                         "value": {"stringValue": "0.62b1"},
+                                    },
+                                    {
+                                        "key": "service.instance.id",
+                                        "value": {
+                                            "stringValue": (
+                                                "9d291623-0520-42bd-a036-"
+                                                "788e2d098cef"
+                                            )
+                                        },
                                     },
                                     {
                                         "key": "telemetry.sdk.name",
@@ -118,8 +127,15 @@ def test_behavioral_profile_removes_version_noise():
         ]
     }
 
+    strict_normalized = normalize_telemetry(raw)
     normalized = normalize_telemetry(raw, profile="behavioral")
 
+    assert strict_normalized["traces"][0]["resource"] == {
+        "service.instance.id": "9d291623-0520-42bd-a036-788e2d098cef",
+        "telemetry.auto.version": "0.62b1",
+        "telemetry.sdk.name": "opentelemetry",
+        "telemetry.sdk.version": "1.41.1",
+    }
     assert normalized["traces"][0]["resource"] == {
         "telemetry.sdk.name": "opentelemetry"
     }

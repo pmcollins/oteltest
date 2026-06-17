@@ -28,6 +28,7 @@ PORT_ATTRIBUTES = {
     "server.port",
 }
 BEHAVIORAL_RESOURCE_EXCLUDES = {
+    "service.instance.id",
     "telemetry.auto.version",
     "telemetry.sdk.version",
 }
