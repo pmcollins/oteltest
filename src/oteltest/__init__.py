@@ -46,7 +46,7 @@ class OtelTest(abc.ABC):
         Return True to use HTTP (port 4318), False for gRPC (port 4317).
         """
 
-    def remote_config(
+    def on_opamp(
         self,
         effective_config: dict | None,
         remote_config_status: str | None,

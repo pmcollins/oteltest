@@ -24,7 +24,7 @@ class OpAMPSmokeOtelTest:
     def on_start(self):
         return None
 
-    def remote_config(
+    def on_opamp(
         self,
         effective_config,
         remote_config_status,

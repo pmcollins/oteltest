@@ -166,7 +166,7 @@ class FlaskOtelTest:
 
 #### OpAMP remote configuration
 
-Define `remote_config()` on an oteltest class to start an OpAMP HTTP server at
+Define `on_opamp()` on an oteltest class to start an OpAMP HTTP server at
 `http://127.0.0.1:4320/v1/opamp` for that test. The method receives the agent's
 effective configuration, remote configuration status, and remote configuration
 error. The status is `None`, `"applying"`, `"applied"`, or `"failed"`. On the
@@ -181,7 +181,7 @@ Return a dictionary to send it to the agent as remote configuration. Return
 class MyOtelTest(OtelTest):
     # Implement the other OtelTest methods as usual.
 
-    def remote_config(
+    def on_opamp(
         self,
         effective_config,
         remote_config_status,
@@ -196,7 +196,7 @@ class MyOtelTest(OtelTest):
 ```
 
 The same method works on a name-only class that does not inherit from
-`OtelTest`. When the class does not define or override `remote_config()`,
+`OtelTest`. When the class does not define or override `on_opamp()`,
 oteltest does not start an OpAMP server. This initial implementation supports
 one JSON configuration document.
 

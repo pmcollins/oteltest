@@ -140,7 +140,7 @@ def test_has_opamp_callback():
             pass
 
     class OpAMPTest(NoOpAMPTest):
-        def remote_config(
+        def on_opamp(
             self, effective_config, remote_config_status, remote_config_error
         ):
             return None
@@ -149,10 +149,10 @@ def test_has_opamp_callback():
         pass
 
     class NonCallableOpAMPTest(NoOpAMPTest):
-        remote_config = None
+        on_opamp = None
 
     class NameOnlyOtelTest:
-        def remote_config(
+        def on_opamp(
             self, effective_config, remote_config_status, remote_config_error
         ):
             return None
@@ -191,7 +191,7 @@ def test_opamp_server_lifecycle_is_part_of_script_setup(tmp_path):
         def is_http(self):
             return False
 
-        def remote_config(
+        def on_opamp(
             self, effective_config, remote_config_status, remote_config_error
         ):
             callback_calls.append(effective_config)
@@ -251,7 +251,7 @@ def test_script_setup_stops_both_servers_after_failure(tmp_path):
         def is_http(self):
             return False
 
-        def remote_config(
+        def on_opamp(
             self, effective_config, remote_config_status, remote_config_error
         ):
             return None

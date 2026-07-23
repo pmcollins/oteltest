@@ -46,7 +46,9 @@ def _encode_remote_config(config: dict) -> opamp_pb2.AgentRemoteConfig:
             separators=(",", ":"),
         ).encode("utf-8")
     except (TypeError, ValueError) as error:
-        message = "remote_config() must return a JSON-serializable dictionary"
+        message = (
+            "on_opamp() must return a JSON-serializable dictionary"
+        )
         raise OpAMPConfigError(message) from error
 
     config_map = opamp_pb2.AgentConfigMap()
@@ -85,7 +87,7 @@ def _decode_effective_config(effective_config: opamp_pb2.EffectiveConfig) -> dic
 
 def _require_remote_config(config) -> dict:
     if not isinstance(config, dict):
-        message = "remote_config() must return a dictionary or None"
+        message = "on_opamp() must return a dictionary or None"
         raise OpAMPConfigError(message)
     return config
 

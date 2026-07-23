@@ -85,7 +85,10 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str, jso
 
         if has_opamp_callback(oteltest_instance):
             raise_if_port_in_use(4320)
-            opamp_server = OpAMPServer(oteltest_instance.remote_config, logger)
+            opamp_server = OpAMPServer(
+                oteltest_instance.on_opamp,
+                logger,
+            )
             opamp_server.start()
 
         script_venv = Venv(str(Path(venv_parent) / module_name), logger)
@@ -245,9 +248,12 @@ def is_strict_subclass(value):
 
 
 def has_opamp_callback(instance) -> bool:
-    implementation = getattr(type(instance), "remote_config", None)
+    implementation = getattr(type(instance), "on_opamp", None)
     if isinstance(instance, OtelTest):
-        return callable(implementation) and implementation is not OtelTest.remote_config
+        return (
+            callable(implementation)
+            and implementation is not OtelTest.on_opamp
+        )
     return callable(implementation)
 
 
