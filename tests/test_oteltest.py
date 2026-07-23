@@ -17,10 +17,12 @@ from oteltest import OtelTest, telemetry
 from oteltest.private import (
     Venv,
     get_next_json_file,
+    has_opamp_callback,
     is_test_class,
     load_oteltest_class_for_script,
     run_python_script,
     save_telemetry_json,
+    setup_script_environment,
 )
 from oteltest.sink import _is_json_content_type, _parse_request
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import (
@@ -117,10 +119,172 @@ def test_is_test_class():
     assert is_test_class(MyOtelTest)
 
 
+def test_has_opamp_callback():
+    class NoOpAMPTest(OtelTest):
+        def environment_variables(self):
+            return {}
+
+        def requirements(self):
+            return []
+
+        def wrapper_command(self):
+            return ""
+
+        def is_http(self):
+            return False
+
+        def on_start(self):
+            return None
+
+        def on_stop(self, tel, stdout, stderr, returncode):
+            pass
+
+    class OpAMPTest(NoOpAMPTest):
+        def remote_config(
+            self, effective_config, remote_config_status, remote_config_error
+        ):
+            return None
+
+    class InheritedOpAMPTest(OpAMPTest):
+        pass
+
+    class NonCallableOpAMPTest(NoOpAMPTest):
+        remote_config = None
+
+    class NameOnlyOtelTest:
+        def remote_config(
+            self, effective_config, remote_config_status, remote_config_error
+        ):
+            return None
+
+    class NameOnlyWithoutCallbackOtelTest:
+        pass
+
+    assert not has_opamp_callback(NoOpAMPTest())
+    assert has_opamp_callback(OpAMPTest())
+    assert has_opamp_callback(InheritedOpAMPTest())
+    assert not has_opamp_callback(NonCallableOpAMPTest())
+    assert has_opamp_callback(NameOnlyOtelTest())
+    assert not has_opamp_callback(NameOnlyWithoutCallbackOtelTest())
+
+
 def test_load_test_class_for_script():
     path = os.path.join(fixtures_dir, "script.py")
     klass = load_oteltest_class_for_script("script", path, logging.getLogger())
     assert klass is not None
+
+
+def test_opamp_server_lifecycle_is_part_of_script_setup(tmp_path):
+    callback_calls = []
+    on_stop_calls = []
+
+    class RunnerOtelTest:
+        def environment_variables(self):
+            return {}
+
+        def requirements(self):
+            return []
+
+        def wrapper_command(self):
+            return ""
+
+        def is_http(self):
+            return False
+
+        def remote_config(
+            self, effective_config, remote_config_status, remote_config_error
+        ):
+            callback_calls.append(effective_config)
+            return None
+
+        def on_start(self):
+            return None
+
+        def on_stop(self, tel, stdout, stderr, returncode):
+            on_stop_calls.append((tel, stdout, stderr, returncode))
+
+    handler = mock.Mock()
+    handler.telemetry_to_json.return_value = "{}"
+    sink = mock.Mock()
+    server = mock.Mock()
+
+    with (
+        mock.patch(
+            "oteltest.private.load_oteltest_class_for_script",
+            return_value=RunnerOtelTest,
+        ),
+        mock.patch("oteltest.private.AccumulatingHandler", return_value=handler),
+        mock.patch("oteltest.private.GrpcSink", return_value=sink),
+        mock.patch("oteltest.private.OpAMPServer", return_value=server) as server_class,
+        mock.patch("oteltest.private.Venv"),
+        mock.patch(
+            "oteltest.private.run_python_script",
+            return_value=("stdout", "stderr", 0),
+        ),
+        mock.patch("oteltest.private.get_next_json_file", return_value="result.json"),
+        mock.patch("oteltest.private.save_telemetry_json"),
+        mock.patch("oteltest.private.raise_if_port_in_use"),
+    ):
+        setup_script_environment(
+            str(tmp_path / "venvs"),
+            str(tmp_path),
+            "scenario.py",
+            "json",
+            logging.getLogger(),
+        )
+
+    server_class.assert_called_once()
+    assert server_class.call_args.args[0].__self__.__class__ is RunnerOtelTest
+    server.start.assert_called_once_with()
+    server.stop.assert_called_once_with()
+    server.raise_callback_error.assert_called_once_with()
+    sink.stop.assert_called_once_with()
+    assert callback_calls == []
+    assert on_stop_calls == [(handler.telemetry, "stdout", "stderr", 0)]
+
+
+def test_script_setup_stops_both_servers_after_failure(tmp_path):
+    class RunnerOtelTest:
+        def requirements(self):
+            return []
+
+        def is_http(self):
+            return False
+
+        def remote_config(
+            self, effective_config, remote_config_status, remote_config_error
+        ):
+            return None
+
+    sink = mock.Mock()
+    server = mock.Mock()
+
+    with (
+        mock.patch(
+            "oteltest.private.load_oteltest_class_for_script",
+            return_value=RunnerOtelTest,
+        ),
+        mock.patch("oteltest.private.AccumulatingHandler"),
+        mock.patch("oteltest.private.GrpcSink", return_value=sink),
+        mock.patch("oteltest.private.OpAMPServer", return_value=server),
+        mock.patch("oteltest.private.Venv"),
+        mock.patch(
+            "oteltest.private.run_python_script",
+            side_effect=RuntimeError("subject failed"),
+        ),
+        mock.patch("oteltest.private.raise_if_port_in_use"),
+        pytest.raises(RuntimeError, match="subject failed"),
+    ):
+        setup_script_environment(
+            str(tmp_path / "venvs"),
+            str(tmp_path),
+            "scenario.py",
+            "json",
+            logging.getLogger(),
+        )
+
+    server.stop.assert_called_once_with()
+    sink.stop.assert_called_once_with()
 
 
 def test_telemetry_functions(metrics_and_traces_telemetry_fixture: Telemetry):
