@@ -58,6 +58,7 @@ class OtelTest(abc.ABC):
         Override this method to enable an OpAMP server for the test. Return
         remote configuration to send to the agent, or None to send nothing.
 
+        effective_config is decoded from JSON or properties into a dictionary.
         remote_config_status is None, "applying", "applied", or "failed".
         remote_config_error contains the agent's error message when available.
         """

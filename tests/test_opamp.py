@@ -121,6 +121,43 @@ def test_effective_config_is_passed_as_a_fresh_dictionary():
     assert source == {"service": {"name": "catalog"}}
 
 
+def test_properties_effective_config_is_passed_as_a_dictionary():
+    received = []
+
+    def remote_config(effective_config, remote_config_status, remote_config_error):
+        received.append((effective_config, remote_config_status, remote_config_error))
+        return None
+
+    request = agent_message()
+    config_file = request.effective_config.config_map.config_map["environment"]
+    config_file.content_type = (
+        "text/plain; format=properties; vendor=splunk; v=1.0.0"
+    )
+    config_file.body = (
+        b"# effective environment\n"
+        b"OTEL_SERVICE_NAME=checkout\n"
+        b"OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318\n"
+    )
+
+    server = start_server(remote_config)
+    try:
+        status, _, _ = post(server, request)
+    finally:
+        server.stop()
+
+    assert status == 200
+    assert received == [
+        (
+            {
+                "OTEL_SERVICE_NAME": "checkout",
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "http://127.0.0.1:4318",
+            },
+            None,
+            None,
+        )
+    ]
+
+
 @pytest.mark.parametrize(
     ("wire_status", "status", "error"),
     [
@@ -231,7 +268,7 @@ def test_status_calls_callback_and_hash_controls_resend():
 @pytest.mark.parametrize(
     ("content_type", "body", "message"),
     [
-        ("text/plain", b"{}", "application/json content type"),
+        ("text/plain", b"{}", "application/json or text/plain"),
         ("application/json", b"not json", "valid UTF-8 JSON"),
         ("application/json", b"[]", "must contain a dictionary"),
     ],
@@ -277,6 +314,31 @@ def test_multiple_effective_config_files_are_rejected():
 
     assert status == 200
     with pytest.raises(OpAMPConfigError, match="exactly one"):
+        server.raise_callback_error()
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (b"\xff", "valid UTF-8"),
+        (b"missing-separator", "invalid property on line 1"),
+        (b"=missing-key", "invalid property on line 1"),
+    ],
+)
+def test_invalid_properties_effective_config_is_rejected(body, message):
+    request = agent_message()
+    config_file = request.effective_config.config_map.config_map["environment"]
+    config_file.content_type = "text/plain; format=properties"
+    config_file.body = body
+
+    server = start_server(
+        lambda effective_config, remote_config_status, remote_config_error: None
+    )
+    status, _, _ = post(server, request)
+    server.stop()
+
+    assert status == 200
+    with pytest.raises(OpAMPConfigError, match=message):
         server.raise_callback_error()
 
 

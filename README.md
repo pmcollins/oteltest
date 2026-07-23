@@ -198,7 +198,8 @@ class MyOtelTest(OtelTest):
 The same method works on a name-only class that does not inherit from
 `OtelTest`. When the class does not define or override `on_opamp()`,
 oteltest does not start an OpAMP server. This initial implementation supports
-one JSON configuration document.
+one JSON or `text/plain; format=properties` configuration document. Oteltest
+decodes either format into the `effective_config` dictionary.
 
 ### otelsink
 

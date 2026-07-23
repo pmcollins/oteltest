@@ -20,6 +20,7 @@ else:
 
 _CONTENT_TYPE = "application/x-protobuf"
 _CONFIG_CONTENT_TYPES = {"application/json", "text/json"}
+_PROPERTIES_CONTENT_TYPE = "text/plain"
 _DEFAULT_PATH = "/v1/opamp"
 _SERVER_CAPABILITIES = (
     opamp_pb2.ServerCapabilities_AcceptsStatus
@@ -46,9 +47,7 @@ def _encode_remote_config(config: dict) -> opamp_pb2.AgentRemoteConfig:
             separators=(",", ":"),
         ).encode("utf-8")
     except (TypeError, ValueError) as error:
-        message = (
-            "on_opamp() must return a JSON-serializable dictionary"
-        )
+        message = "on_opamp() must return a JSON-serializable dictionary"
         raise OpAMPConfigError(message) from error
 
     config_map = opamp_pb2.AgentConfigMap()
@@ -64,13 +63,18 @@ def _encode_remote_config(config: dict) -> opamp_pb2.AgentRemoteConfig:
 def _decode_effective_config(effective_config: opamp_pb2.EffectiveConfig) -> dict:
     config_files = effective_config.config_map.config_map
     if len(config_files) != 1:
-        message = "effective config must contain exactly one JSON config file"
+        message = "effective config must contain exactly one config file"
         raise OpAMPConfigError(message)
 
     _, config_file = next(iter(config_files.items()))
-    content_type = config_file.content_type.partition(";")[0].strip().lower()
+    content_type, parameters = _parse_content_type(config_file.content_type)
+    if content_type == _PROPERTIES_CONTENT_TYPE and parameters.get("format") == "properties":
+        return _decode_properties(config_file.body)
     if content_type not in _CONFIG_CONTENT_TYPES:
-        message = "effective config must use the application/json content type"
+        message = (
+            "effective config must use application/json or "
+            "text/plain; format=properties"
+        )
         raise OpAMPConfigError(message)
 
     try:
@@ -82,6 +86,36 @@ def _decode_effective_config(effective_config: opamp_pb2.EffectiveConfig) -> dic
     if not isinstance(config, dict):
         message = "effective config JSON must contain a dictionary"
         raise OpAMPConfigError(message)
+    return config
+
+
+def _parse_content_type(content_type: str) -> tuple[str, dict[str, str]]:
+    media_type, *raw_parameters = content_type.split(";")
+    parameters = {}
+    for raw_parameter in raw_parameters:
+        name, separator, value = raw_parameter.partition("=")
+        if separator:
+            parameters[name.strip().lower()] = value.strip().strip('"').lower()
+    return media_type.strip().lower(), parameters
+
+
+def _decode_properties(body: bytes) -> dict[str, str]:
+    try:
+        text = body.decode("utf-8")
+    except UnicodeDecodeError as error:
+        message = "properties effective config must contain valid UTF-8"
+        raise OpAMPConfigError(message) from error
+
+    config = {}
+    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+        line = raw_line.strip()
+        if not line or line.startswith(("#", "!")):
+            continue
+        key, separator, value = line.partition("=")
+        if not separator or not key.strip():
+            message = f"invalid property on line {line_number}"
+            raise OpAMPConfigError(message)
+        config[key.strip()] = value.strip()
     return config
 
 
