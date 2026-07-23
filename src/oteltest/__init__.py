@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
     from oteltest.telemetry import Telemetry
 
 
@@ -43,6 +45,25 @@ class OtelTest(abc.ABC):
         """
         Return True to use HTTP (port 4318), False for gRPC (port 4317).
         """
+
+    def on_opamp(
+        self,
+        effective_config: dict | None,
+        remote_config_status: str | None,
+        remote_config_error: str | None,
+    ) -> dict | None:
+        """
+        Receive the agent's effective configuration and remote configuration status.
+
+        Override this method to enable an OpAMP server for the test. Return
+        remote configuration to send to the agent, or None to send nothing.
+
+        effective_config is decoded from JSON or properties into a dictionary.
+        remote_config_status is None, "applying", "applied", or "failed".
+        remote_config_error contains the agent's error message when available.
+        """
+        del effective_config, remote_config_status, remote_config_error
+        return None
 
     @abc.abstractmethod
     def on_start(self) -> float | None:

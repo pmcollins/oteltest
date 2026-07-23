@@ -164,6 +164,43 @@ class FlaskOtelTest:
         return False
 ```
 
+#### OpAMP remote configuration
+
+Define `on_opamp()` on an oteltest class to start an OpAMP HTTP server at
+`http://127.0.0.1:4320/v1/opamp` for that test. The method receives the agent's
+effective configuration, remote configuration status, and remote configuration
+error. The status is `None`, `"applying"`, `"applied"`, or `"failed"`. On the
+first request, these values are `None` when the agent has not reported them.
+Later calls receive the latest values known by the server, even when the agent
+omits an unchanged value from its request.
+
+Return a dictionary to send it to the agent as remote configuration. Return
+`None` to send no new configuration.
+
+```python
+class MyOtelTest(OtelTest):
+    # Implement the other OtelTest methods as usual.
+
+    def on_opamp(
+        self,
+        effective_config,
+        remote_config_status,
+        remote_config_error,
+    ):
+        if effective_config is None:
+            return {"file_format": "1.0-rc.1"}
+
+        assert remote_config_status == "applied", remote_config_error
+        assert effective_config["file_format"] == "1.0-rc.1"
+        return None
+```
+
+The same method works on a name-only class that does not inherit from
+`OtelTest`. When the class does not define or override `on_opamp()`,
+oteltest does not start an OpAMP server. This initial implementation supports
+one JSON or `text/plain; format=properties` configuration document. Oteltest
+decodes either format into the `effective_config` dictionary.
+
 ### otelsink
 
 `otelsink` is a gRPC (or HTTP) server that listens for OTel metrics, traces, and logs.

@@ -24,9 +24,11 @@ classifiers = [
 ]
 dependencies = [
     "opentelemetry-proto",
+    "opentelemetry-opamp-client",
     "opentelemetry-api",
     "grpcio",
     "protobuf",
+    "requests",  # needed by opamp client which doesn't declare the dep
     "flask",
 ]
 

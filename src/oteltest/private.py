@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from logging import Logger
 
 from oteltest import OtelTest
+from oteltest.opamp import OpAMPServer
 from oteltest.sink import GrpcSink, HttpSink, raise_if_port_in_use
 from oteltest.sink.handler import AccumulatingHandler
 from oteltest.version import __version__
@@ -75,34 +76,57 @@ def setup_script_environment(venv_parent: str, script_dir: str, script: str, jso
     else:
         raise_if_port_in_use(4317)
         sink = GrpcSink(handler, logger)
-    sink.start()
-
-    script_venv = Venv(str(Path(venv_parent) / module_name), logger)
-    script_venv.create()
-
-    pip_path = script_venv.path_to_executable("pip")
-
-    reqs = list(oteltest_instance.requirements())
-    if reqs:
-        logger.info("Will install requirements: %s", reqs)
-        run_subprocess([pip_path, "install"] + reqs, logger)
-
-    stdout, stderr, returncode = run_python_script(
-        start_subprocess, script_dir, script, oteltest_instance, script_venv, logger
-    )
-    print_subprocess_result(stdout, stderr, returncode, logger)
-
-    json_dir = os.path.join(script_dir, json_dir_base)
-    filename = get_next_json_file(json_dir, module_name)
-    logger.info("Will save telemetry to %s", filename)
-    save_telemetry_json(json_dir, filename, handler.telemetry_to_json())
-
+    sink_started = False
+    opamp_server = None
+    opamp_server_stopped = False
     try:
-        oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
-        logger.info("✅️Success: %s", script)
-    except AssertionError as ae:
-        logger.info("❌️AssertionError: %s %s", script, ae)
-    sink.stop()
+        sink.start()
+        sink_started = True
+
+        if has_opamp_callback(oteltest_instance):
+            raise_if_port_in_use(4320)
+            opamp_server = OpAMPServer(
+                oteltest_instance.on_opamp,
+                logger,
+            )
+            opamp_server.start()
+
+        script_venv = Venv(str(Path(venv_parent) / module_name), logger)
+        script_venv.create()
+
+        pip_path = script_venv.path_to_executable("pip")
+
+        reqs = list(oteltest_instance.requirements())
+        if reqs:
+            logger.info("Will install requirements: %s", reqs)
+            run_subprocess([pip_path, "install", *reqs], logger)
+
+        stdout, stderr, returncode = run_python_script(
+            start_subprocess, script_dir, script, oteltest_instance, script_venv, logger
+        )
+        print_subprocess_result(stdout, stderr, returncode, logger)
+
+        json_dir = os.path.join(script_dir, json_dir_base)
+        filename = get_next_json_file(json_dir, module_name)
+        logger.info("Will save telemetry to %s", filename)
+        save_telemetry_json(json_dir, filename, handler.telemetry_to_json())
+
+        if opamp_server is not None:
+            opamp_server.stop()
+            opamp_server_stopped = True
+
+        try:
+            oteltest_instance.on_stop(handler.telemetry, stdout, stderr, returncode)
+            if opamp_server is not None:
+                opamp_server.raise_callback_error()
+            logger.info("✅️Success: %s", script)
+        except AssertionError as ae:
+            logger.info("❌️AssertionError: %s %s", script, ae)
+    finally:
+        if opamp_server is not None and not opamp_server_stopped:
+            opamp_server.stop()
+        if sink_started:
+            sink.stop()
 
 
 def get_next_json_file(path_str: str, module_name: str):
@@ -221,6 +245,16 @@ def is_test_class(value):
 
 def is_strict_subclass(value):
     return issubclass(value, OtelTest) and value is not OtelTest and not inspect.isabstract(value)
+
+
+def has_opamp_callback(instance) -> bool:
+    implementation = getattr(type(instance), "on_opamp", None)
+    if isinstance(instance, OtelTest):
+        return (
+            callable(implementation)
+            and implementation is not OtelTest.on_opamp
+        )
+    return callable(implementation)
 
 
 class Venv:
