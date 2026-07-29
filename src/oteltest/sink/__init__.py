@@ -173,6 +173,8 @@ class HttpSink:
         if self.httpd:
             self.httpd.shutdown()
         self.svr_thread.join()
+        if self.httpd:
+            self.httpd.server_close()
 
 
 def run_grpc(logger):
