@@ -5,6 +5,8 @@
     "opentelemetry-proto @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-proto",
     "opentelemetry-semantic-conventions @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-semantic-conventions",
     "opentelemetry-sdk @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=opentelemetry-sdk",
+    "opentelemetry-exporter-http-transport @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=exporter/opentelemetry-exporter-http-transport",
+    "opentelemetry-exporter-otlp-common @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=exporter/opentelemetry-exporter-otlp-common",
     "opentelemetry-exporter-otlp-proto-common @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=exporter/opentelemetry-exporter-otlp-proto-common",
     "opentelemetry-exporter-otlp-proto-http @ git+https://github.com/open-telemetry/opentelemetry-python.git@main#subdirectory=exporter/opentelemetry-exporter-otlp-proto-http",
     "opentelemetry-instrumentation @ git+https://github.com/open-telemetry/opentelemetry-python-contrib.git@main#subdirectory=opentelemetry-instrumentation",
