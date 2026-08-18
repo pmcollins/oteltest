@@ -14,18 +14,30 @@ class OtelTest(abc.ABC):
     Abstract base class for tests using OtelTest. No need to instantiate or call it -- just define a subclass of
     OtelTest anywhere in your script.
 
-    The first three methods are for configuration and the second two are callbacks.
+    Configuration methods define the script environment. Callback methods let the test interact with the running
+    script and inspect its results.
 
     When you run the `oteltest` command against your script, a new Python virtual environment is created with the
     configuration specified by this class's implementation. The two callbacks are then run, but not in the subprocess
     of the script, rather in the process of the oteltest command.
     """
 
-    @abc.abstractmethod
     def environment_variables(self) -> Mapping[str, str]:
         """
         Return a mapping of environment variables to their values. These will become the env vars for your script.
+        The default is an empty mapping.
         """
+        return {}
+
+    def declarative_configuration(self) -> str | None:
+        """
+        Return an OpenTelemetry declarative configuration YAML document.
+
+        Oteltest writes the document to a temporary .yaml file and sets
+        OTEL_CONFIG_FILE for the script. Return None to use environment variable
+        configuration instead.
+        """
+        return None
 
     @abc.abstractmethod
     def requirements(self) -> Sequence[str]:

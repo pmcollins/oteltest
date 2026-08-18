@@ -164,6 +164,50 @@ class FlaskOtelTest:
         return False
 ```
 
+#### Declarative configuration
+
+Define `declarative_configuration()` to keep an OpenTelemetry declarative
+configuration YAML document in the test script. Oteltest writes the document to
+a temporary `.yaml` file, sets `OTEL_CONFIG_FILE` for the script process, and
+removes the file after the process stops.
+
+```python
+class DeclarativeConfigOtelTest:
+    # Implement the other OtelTest methods as usual.
+
+    def declarative_configuration(self):
+        return """
+        file_format: "1.0"
+
+        resource:
+          attributes:
+            - name: service.name
+              value: declarative-test
+
+        tracer_provider:
+          processors:
+            - batch:
+                exporter:
+                  otlp_grpc:
+                    endpoint: http://localhost:4317
+        """
+```
+
+Oteltest removes the common indentation before it writes the document. It
+otherwise preserves the content, including environment variable substitutions
+such as `${OTEL_SERVICE_NAME}`. The OpenTelemetry SDK installed by
+`requirements()` parses and validates the document.
+
+The method is optional. Tests that configure OpenTelemetry through environment
+variables do not need to define it. The `environment_variables()` method is
+optional too; omit it if the child process needs no variables. You can use it
+with declarative configuration to supply application settings and values for
+`${ENV_VAR}` references in the YAML. Do not use it to set `OTEL_CONFIG_FILE` or
+the deprecated `OTEL_EXPERIMENTAL_CONFIG_FILE`; Oteltest manages the
+configuration file path. See
+[`trace_declarative_config.py`](example_scripts/trace_declarative_config.py) for
+a complete runnable example.
+
 #### OpAMP remote configuration
 
 Define `on_opamp()` on an oteltest class to start an OpAMP HTTP server at

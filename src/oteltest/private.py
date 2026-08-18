@@ -9,11 +9,14 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import textwrap
 import venv
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator, Mapping
     from logging import Logger
 
 from oteltest import OtelTest
@@ -168,7 +171,59 @@ def run_python_script(
 
     # typically python_script_cmd will be ["opentelemetry-instrument", "python", "foo.py"] but with full paths
     logger.info("Start subprocess: %s", python_script_cmd)
-    proc = start_subprocess_func(python_script_cmd, oteltest_instance.environment_variables())
+    environment = _environment_variables(oteltest_instance)
+    configuration = _declarative_configuration(oteltest_instance)
+    if configuration is None:
+        return _run_script_process(
+            start_subprocess_func,
+            python_script_cmd,
+            environment,
+            oteltest_instance,
+            script,
+            logger,
+        )
+
+    _reject_config_file_environment_variables(environment)
+    with _temporary_declarative_configuration(configuration) as config_path:
+        environment["OTEL_CONFIG_FILE"] = str(config_path)
+        logger.info("Using declarative configuration file: %s", config_path)
+        return _run_script_process(
+            start_subprocess_func,
+            python_script_cmd,
+            environment,
+            oteltest_instance,
+            script,
+            logger,
+        )
+
+
+def _environment_variables(oteltest_instance) -> dict[str, str]:
+    get_environment = getattr(oteltest_instance, "environment_variables", None)
+    return {} if get_environment is None else dict(get_environment())
+
+
+def _declarative_configuration(oteltest_instance) -> str | None:
+    get_configuration = getattr(oteltest_instance, "declarative_configuration", None)
+    if not callable(get_configuration):
+        return None
+
+    configuration = get_configuration()
+    if configuration is None:
+        return None
+    if not isinstance(configuration, str):
+        raise TypeError("declarative_configuration() must return a string or None")
+    return configuration
+
+
+def _run_script_process(
+    start_subprocess_func,
+    python_script_cmd: list[str],
+    environment: dict[str, str],
+    oteltest_instance,
+    script: str,
+    logger: Logger,
+) -> tuple[str, str, int]:
+    proc = start_subprocess_func(python_script_cmd, environment)
     timeout_seconds = oteltest_instance.on_start()
     if timeout_seconds is None:
         logger.info("Will wait for %s to finish by itself", script)
@@ -182,6 +237,43 @@ def run_python_script(
         return decode(ex.stdout), decode(ex.stderr), proc.returncode
     else:
         return stdout, stderr, proc.returncode
+
+
+@contextmanager
+def _temporary_declarative_configuration(
+    configuration: str,
+) -> Iterator[Path]:
+    config_path = _write_declarative_configuration(configuration)
+    try:
+        yield config_path
+    finally:
+        config_path.unlink(missing_ok=True)
+
+
+def _reject_config_file_environment_variables(environment: Mapping[str, str]) -> None:
+    conflicting_names = (
+        "OTEL_CONFIG_FILE",
+        "OTEL_EXPERIMENTAL_CONFIG_FILE",
+    )
+    conflicts = [name for name in conflicting_names if name in environment]
+    if conflicts:
+        names = ", ".join(conflicts)
+        raise ValueError(
+            "declarative_configuration() cannot be used with environment "
+            f"variable configuration file settings: {names}"
+        )
+
+
+def _write_declarative_configuration(configuration: str) -> Path:
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="oteltest-",
+        suffix=".yaml",
+        delete=False,
+    ) as config_file:
+        config_file.write(textwrap.dedent(configuration))
+        return Path(config_file.name).resolve()
 
 
 def start_subprocess(python_script_cmd, env):
