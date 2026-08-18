@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.49.0 (2026-08-18)
+
+- Add support for embedding OpenTelemetry declarative configuration YAML in an
+  oteltest script
+- Make `environment_variables()` optional with an empty default
+
 ## 0.48.1 (2026-07-29)
 
 - Close the `HttpSink` server socket on shutdown so its port can be reused
