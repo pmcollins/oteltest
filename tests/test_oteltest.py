@@ -5,6 +5,7 @@ import logging
 import os
 import pickle
 import sys
+from pathlib import Path
 from typing import Mapping, Optional, Sequence
 from unittest import mock
 
@@ -93,9 +94,6 @@ def test_is_test_class():
         pass
 
     class MyImpl(OtelTest):
-        def environment_variables(self) -> Mapping[str, str]:
-            pass
-
         def requirements(self) -> Sequence[str]:
             pass
 
@@ -117,6 +115,7 @@ def test_is_test_class():
     assert not is_test_class(K)
     assert is_test_class(MyImpl)
     assert is_test_class(MyOtelTest)
+    assert MyImpl().environment_variables() == {}
 
 
 def test_has_opamp_callback():
@@ -372,6 +371,145 @@ def test_run_python_script():
         "script_dir/script",
     ]
     assert t.env == env_store
+
+
+def test_run_python_script_uses_temporary_declarative_configuration():
+    configuration = """
+        file_format: "1.0"
+        resource:
+          attributes_list: ${OTEL_RESOURCE_ATTRIBUTES}
+    """
+    original_environment = {"OTEL_RESOURCE_ATTRIBUTES": "service.name=test"}
+    received_environment = None
+    received_configuration = None
+
+    class DeclarativeOtelTest(FakeOtelTest):
+        def declarative_configuration(self):
+            return configuration
+
+    def start_subprocess(python_script_cmd, environment):
+        nonlocal received_environment, received_configuration
+        del python_script_cmd
+        received_environment = environment
+        config_path = environment["OTEL_CONFIG_FILE"]
+        assert os.path.isabs(config_path)
+        assert config_path.endswith(".yaml")
+        received_configuration = Path(config_path).read_text(encoding="utf-8")
+        return FakeSubProcess()
+
+    run_python_script(
+        start_subprocess,
+        "script_dir",
+        "script",
+        DeclarativeOtelTest(env=original_environment),
+        Venv("venv_dir", logging.getLogger()),
+        logging.getLogger(),
+    )
+
+    assert received_configuration == (
+        '\nfile_format: "1.0"\n'
+        "resource:\n"
+        "  attributes_list: ${OTEL_RESOURCE_ATTRIBUTES}\n"
+    )
+    assert received_environment["OTEL_RESOURCE_ATTRIBUTES"] == "service.name=test"
+    assert "OTEL_CONFIG_FILE" not in original_environment
+    assert not Path(received_environment["OTEL_CONFIG_FILE"]).exists()
+
+
+def test_run_python_script_defaults_to_empty_environment():
+    received_environment = None
+
+    class NameOnlyOtelTest:
+        def wrapper_command(self):
+            return ""
+
+        def on_start(self):
+            return None
+
+    def start_subprocess(python_script_cmd, environment):
+        nonlocal received_environment
+        del python_script_cmd
+        received_environment = environment
+        return FakeSubProcess()
+
+    run_python_script(
+        start_subprocess,
+        "script_dir",
+        "script",
+        NameOnlyOtelTest(),
+        Venv("venv_dir", logging.getLogger()),
+        logging.getLogger(),
+    )
+
+    assert received_environment == {}
+
+
+def test_run_python_script_removes_declarative_configuration_after_failure():
+    config_path = None
+
+    class DeclarativeOtelTest(FakeOtelTest):
+        def declarative_configuration(self):
+            return 'file_format: "1.0"'
+
+    def start_subprocess(python_script_cmd, environment):
+        nonlocal config_path
+        del python_script_cmd
+        config_path = Path(environment["OTEL_CONFIG_FILE"])
+        raise RuntimeError("subject did not start")
+
+    with pytest.raises(RuntimeError, match="subject did not start"):
+        run_python_script(
+            start_subprocess,
+            "script_dir",
+            "script",
+            DeclarativeOtelTest(),
+            Venv("venv_dir", logging.getLogger()),
+            logging.getLogger(),
+        )
+
+    assert config_path is not None
+    assert not config_path.exists()
+
+
+@pytest.mark.parametrize(
+    "variable_name",
+    ("OTEL_CONFIG_FILE", "OTEL_EXPERIMENTAL_CONFIG_FILE"),
+)
+def test_run_python_script_rejects_declarative_configuration_file_conflict(
+    variable_name,
+):
+    class DeclarativeOtelTest(FakeOtelTest):
+        def declarative_configuration(self):
+            return 'file_format: "1.0"'
+
+    with pytest.raises(ValueError, match=variable_name):
+        run_python_script(
+            mock.Mock(),
+            "script_dir",
+            "script",
+            DeclarativeOtelTest(env={variable_name: "external.yaml"}),
+            Venv("venv_dir", logging.getLogger()),
+            logging.getLogger(),
+        )
+
+
+def test_run_python_script_rejects_non_string_declarative_configuration():
+    class DeclarativeOtelTest(FakeOtelTest):
+        def declarative_configuration(self):
+            return {"file_format": "1.0"}
+
+    with pytest.raises(
+        TypeError,
+        match=r"declarative_configuration\(\) must return a string or None",
+    ):
+        run_python_script(
+            mock.Mock(),
+            "script_dir",
+            "script",
+            DeclarativeOtelTest(),
+            Venv("venv_dir", logging.getLogger()),
+            logging.getLogger(),
+        )
 
 
 def test_venv_path_to_executable_unix():
