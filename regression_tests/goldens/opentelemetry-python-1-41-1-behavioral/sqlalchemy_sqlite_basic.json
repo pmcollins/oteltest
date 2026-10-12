@@ -74,7 +74,7 @@
         {
           "attributes": {
             "db.name": ":memory:",
-            "db.operation": "create :memory:",
+            "db.operation": "create",
             "db.statement": "create table users (id integer primary key, name text)",
             "db.system": "sqlite"
           },
@@ -85,7 +85,7 @@
         {
           "attributes": {
             "db.name": ":memory:",
-            "db.operation": "insert :memory:",
+            "db.operation": "insert",
             "db.statement": "insert into users (name) values (?)",
             "db.system": "sqlite"
           },
@@ -96,7 +96,7 @@
         {
           "attributes": {
             "db.name": ":memory:",
-            "db.operation": "select :memory:",
+            "db.operation": "select",
             "db.statement": "select id, name from users where name = ?",
             "db.system": "sqlite"
           },
